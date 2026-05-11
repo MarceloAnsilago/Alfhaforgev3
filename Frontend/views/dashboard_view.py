@@ -3,6 +3,7 @@ import customtkinter as ctk
 from models.navigation import NavigationItem
 from themes.theme import UITheme
 from views.initial_settings_view import InitialSettingsView
+from views.stop_loss_view import StopLossView
 
 
 class DashboardView(ctk.CTkFrame):
@@ -65,6 +66,11 @@ class DashboardView(ctk.CTkFrame):
 
         if item.item_id == "inf_iniciais":
             self._current_body = InitialSettingsView(self._placeholder, self._theme)
+            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
+            return
+
+        if item.item_id == "stop_loss":
+            self._current_body = StopLossView(self._placeholder, self._theme)
             self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
             return
 

@@ -10,18 +10,71 @@
 #include "AlphaForgeOptimizeModal.mqh"
 #include "Theme/ChartTheme.mqh"
 
+#import "shell32.dll"
+int ShellExecuteW(int hwnd,string lpOperation,string lpFile,string lpParameters,string lpDirectory,int nShowCmd);
+#import
+
 string BUTTON_CREATE_NAME   = "AlphaForgeV3.BtnCreateStrategy";
 string BUTTON_OPTIMIZE_NAME = "AlphaForgeV3.BtnOptimize";
 string BUTTON_OPERATE_NAME  = "AlphaForgeV3.BtnOperate";
 string PANEL_NAME           = "AlphaForgeV3.Panel";
+int TIMER_INTERVAL_MS       = 100;
 
 bool g_operation_enabled = false;
 CAlphaForgeOptimizeModal g_optimize_modal;
 CAlphaForgeChartTheme g_chart_theme;
 
+string BuildFrontendPath(const string entry_name)
+  {
+   string root_dir=TerminalInfoString(TERMINAL_DATA_PATH)+"\\MQL5\\Experts\\Advisors\\V3\\Frontend";
+   if(entry_name=="")
+      return(root_dir);
+
+   return(root_dir+"\\"+entry_name);
+  }
+
+bool LaunchFrontendWith(const string executable,const string parameters,const string working_dir)
+  {
+   int result=ShellExecuteW(0,"open",executable,parameters,working_dir,1);
+   return(result>32);
+  }
+
 void NotifyFrontendPending()
   {
-   Print("Frontend ainda nao implementado");
+   string frontend_dir=BuildFrontendPath("");
+   string app_path=BuildFrontendPath("app.py");
+   if(frontend_dir=="" || app_path=="")
+     {
+      Print("AlphaForge V3: nao foi possivel resolver o caminho do frontend.");
+      return;
+     }
+
+   if(!FileIsExist(app_path))
+     {
+      Print("AlphaForge V3: frontend nao encontrado em ",app_path);
+      return;
+     }
+
+   string app_argument="\""+app_path+"\"";
+   if(LaunchFrontendWith("pythonw.exe",app_argument,frontend_dir))
+     {
+      Print("AlphaForge V3: frontend iniciado com pythonw.exe");
+      return;
+     }
+
+   if(LaunchFrontendWith("python.exe",app_argument,frontend_dir))
+     {
+      Print("AlphaForge V3: frontend iniciado com python.exe");
+      return;
+     }
+
+   if(LaunchFrontendWith("py.exe","-3 "+app_argument,frontend_dir))
+     {
+      Print("AlphaForge V3: frontend iniciado com py.exe");
+      return;
+     }
+
+   Print("AlphaForge V3: falha ao iniciar o frontend. Verifique Python e customtkinter instalados.");
   }
 
 bool CreateButtonObject(const string name,const string text,const int x,const int y,const int width,const color back_color)
@@ -118,6 +171,14 @@ int OnInit()
       return(INIT_FAILED);
      }
 
+   if(!EventSetMillisecondTimer(TIMER_INTERVAL_MS))
+     {
+      Print("AlphaForge V3: falha ao iniciar o timer da interface.");
+      DestroyControlPanel();
+      g_chart_theme.RestoreTheme();
+      return(INIT_FAILED);
+     }
+
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
@@ -125,6 +186,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
   {
+   EventKillTimer();
    DestroyControlPanel();
    g_optimize_modal.Shutdown();
    g_chart_theme.RestoreTheme();
