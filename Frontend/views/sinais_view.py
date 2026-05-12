@@ -897,6 +897,25 @@ class SinaisView(ctk.CTkFrame):
         stoch_type_items = ["Minimo/Maximo", "Fechamento/Fechamento"]
         return {
             "Nao usar": [],
+            "Keltner": [
+                ("Periodo", "20", None),
+                ("Desvio", "1.5", None),
+                ("Tipo de media", "Exponencial", ma_items),
+            ],
+            "Donchian": [
+                ("Periodo", "20", None),
+            ],
+            "ATR com desvio": [
+                ("Periodo", "14", None),
+                ("Desvio", "1.5", None),
+            ],
+            "Envelopes": [
+                ("Periodo", "20", None),
+                ("Shift", "0", None),
+                ("Tipo de media", "Exponencial", ma_items),
+                ("Desvio", "0.2", None),
+            ],
+            "Fractal": [],
             "RSI": [
                 ("Periodo", "14", None),
                 ("Modo de preco", "Fechamento", price_items),
