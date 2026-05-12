@@ -16,7 +16,7 @@ class AlphaForgeApp(ctk.CTk):
         self._navigation_items = build_navigation_items()
         self._active_item = self._navigation_items[0]
 
-        self.title("AlphaForge V3")
+        self.title("Construtor | AlphaForge V3")
         self.geometry("1440x900")
         self.minsize(1180, 760)
         self.configure(fg_color=self._theme.colors.app_background)

@@ -132,21 +132,17 @@ class Sidebar(ctk.CTkFrame):
             fg_color=self._theme.colors.surface,
             corner_radius=0,
             border_width=0,
+            height=58,
         )
+        brand_frame.grid_propagate(False)
         brand_frame.grid(row=0, column=0, sticky="ew", padx=12, pady=(16, 10))
 
         ctk.CTkLabel(
             brand_frame,
-            text="Construtor | EasyPanel V3",
+            text="Construtor | AlphaForge V3",
             text_color=self._theme.colors.text,
             font=self._theme.font("subtitle", weight="normal"),
-        ).pack(anchor="w")
-        ctk.CTkLabel(
-            brand_frame,
-            text="Sidebar mantida, identidade visual inspirada no V2",
-            text_color=self._theme.colors.text_subtle,
-            font=self._theme.font("caption"),
-        ).pack(anchor="w", pady=(2, 0))
+        ).pack(anchor="w", padx=10, pady=(16, 0))
 
     def _build_navigation(self) -> None:
         nav_frame = ctk.CTkFrame(self, fg_color="transparent")
