@@ -1,5 +1,6 @@
 import customtkinter as ctk
 
+from models.initial_settings import build_initial_settings_options
 from themes.theme import UITheme
 
 
@@ -7,6 +8,7 @@ class SinaisView(ctk.CTkFrame):
     def __init__(self, master, theme: UITheme) -> None:
         super().__init__(master, fg_color="transparent")
         self._theme = theme
+        self._initial_options = build_initial_settings_options()
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -247,7 +249,7 @@ class SinaisView(ctk.CTkFrame):
         self._add_label(card, 4, "Tempo grafico")
         self._filtro_timeframe = self._create_combo(
             card,
-            ["Corrente", "M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+            self._initial_options.tempos_graficos,
             ctk.StringVar(value="Corrente"),
         )
         self._filtro_timeframe.grid(row=5, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
