@@ -5,6 +5,7 @@ from themes.theme import UITheme
 from views.break_even_view import BreakEvenView
 from views.initial_settings_view import InitialSettingsView
 from views.saidas_parciais_view import SaidasParciaisView
+from views.sinais_view import SinaisView
 from views.take_profit_view import TakeProfitView
 from views.stop_movel_view import StopMovelView
 from views.stop_loss_view import StopLossView
@@ -101,6 +102,11 @@ class DashboardView(ctk.CTkFrame):
 
         if item.item_id == "saidas_parciais":
             self._current_body = SaidasParciaisView(self._placeholder, self._theme)
+            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
+            return
+
+        if item.item_id == "sinais":
+            self._current_body = SinaisView(self._placeholder, self._theme)
             self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
             return
 
