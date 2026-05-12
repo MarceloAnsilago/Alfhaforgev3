@@ -83,6 +83,7 @@ class SinaisView(ctk.CTkFrame):
         self._build_tipo_ordens_card(panel)
         self._build_filtro_card(panel)
         self._build_canais_card(panel)
+        self._build_cruzamentos_card(panel)
 
         return panel
 
@@ -347,6 +348,185 @@ class SinaisView(ctk.CTkFrame):
 
         self._set_canais_mode("Nao")
 
+    def _build_cruzamentos_card(self, panel: ctk.CTkFrame) -> None:
+        card = ctk.CTkFrame(
+            panel,
+            fg_color=self._theme.colors.card,
+            corner_radius=0,
+            border_width=1,
+            border_color=self._theme.colors.border,
+        )
+        card.grid(row=2, column=3, sticky="nsew", padx=6, pady=(0, 18))
+        card.grid_columnconfigure(0, weight=1)
+        card.grid_columnconfigure(1, weight=1)
+        card.grid_rowconfigure(4, weight=1)
+
+        ctk.CTkLabel(
+            card,
+            text="Cruzamentos",
+            text_color=self._theme.colors.text,
+            font=self._theme.font("subtitle"),
+            anchor="w",
+        ).grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 16))
+
+        self._add_label(card, 1, "Usar cruzamentos", pady=(0, 6))
+        self._cruz_mode = ctk.StringVar(value="Nao")
+        self._cruz_yes = self._create_checkbox(
+            card,
+            "Sim",
+            lambda: self._set_cruz_mode("Sim"),
+        )
+        self._cruz_yes.grid(row=2, column=0, sticky="w", padx=16, pady=(0, 12))
+
+        self._cruz_no = self._create_checkbox(
+            card,
+            "Nao",
+            lambda: self._set_cruz_mode("Nao"),
+        )
+        self._cruz_no.grid(row=2, column=1, sticky="w", padx=(0, 16), pady=(0, 12))
+
+        self._cruz_tab_var = ctk.StringVar(value="Geral")
+        self._cruz_tabs = ctk.CTkSegmentedButton(
+            card,
+            values=["Geral", "Rapida", "Lenta"],
+            variable=self._cruz_tab_var,
+            command=self._on_cruz_tab_change,
+            height=32,
+            corner_radius=0,
+            fg_color=self._theme.colors.header_dark,
+            selected_color=self._theme.colors.accent,
+            selected_hover_color=self._theme.colors.accent_hover,
+            unselected_color=self._theme.colors.header_dark,
+            unselected_hover_color=self._theme.colors.sidebar_item_hover,
+            text_color=self._theme.colors.header_text,
+            text_color_disabled=self._theme.colors.card_soft,
+            font=self._theme.font("label", weight="bold"),
+        )
+        self._cruz_tabs.grid(row=3, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+
+        self._cruz_shell = ctk.CTkFrame(card, fg_color="transparent", corner_radius=0, border_width=0)
+        self._cruz_shell.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=16, pady=(0, 16))
+        self._cruz_shell.grid_columnconfigure(0, weight=1)
+        self._cruz_shell.grid_rowconfigure(0, weight=1)
+
+        cruz_indic_items = [
+            "Nao usar",
+            "Fechamento da vela",
+            "Abertura da vela",
+            "Maxima da vela",
+            "Minima da vela",
+            "Media movel",
+            "VIDYA",
+            "DEMA",
+            "TEMA",
+            "FRAMA",
+        ]
+        cruz_signal_items = ["Cruzamento para baixo", "Cruzamento para cima", "Ambos"]
+        cruz_price_items = ["Fechamento", "Abertura", "Maximo", "Minimo", "Mediano", "Tipico", "Medio"]
+        cruz_ma_items = ["Simples", "Exponencial", "Suavizada", "Linear ponderada", "Smoothed"]
+
+        self._cruz_geral_panel = self._create_subpanel(self._cruz_shell)
+        self._cruz_geral_panel.grid_columnconfigure(0, weight=1)
+        self._add_label(self._cruz_geral_panel, 0, "Linha rapida", padx=12, pady=(12, 4))
+        self._cruz_fast_combo = self._create_combo(
+            self._cruz_geral_panel,
+            cruz_indic_items,
+            ctk.StringVar(value="Nao usar"),
+        )
+        self._cruz_fast_combo.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._cruz_geral_panel, 2, "Sinal", padx=12)
+        self._cruz_signal_combo = self._create_combo(
+            self._cruz_geral_panel,
+            cruz_signal_items,
+            ctk.StringVar(value="Cruzamento para baixo"),
+        )
+        self._cruz_signal_combo.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._cruz_geral_panel, 4, "Linha lenta", padx=12)
+        self._cruz_slow_combo = self._create_combo(
+            self._cruz_geral_panel,
+            cruz_indic_items,
+            ctk.StringVar(value="Nao usar"),
+        )
+        self._cruz_slow_combo.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 10))
+        ctk.CTkLabel(
+            self._cruz_geral_panel,
+            text="As abas Rapida e Lenta acompanham o indicador escolhido aqui.",
+            text_color=self._theme.colors.text_subtle,
+            font=self._theme.font("label"),
+            justify="left",
+            wraplength=220,
+            anchor="w",
+        ).grid(row=6, column=0, sticky="ew", padx=12, pady=(4, 12))
+
+        self._cruz_rapida_panel = self._create_subpanel(self._cruz_shell)
+        self._cruz_rapida_panel.grid_columnconfigure(0, weight=1)
+        self._add_label(self._cruz_rapida_panel, 0, "Indicador rapido", padx=12, pady=(12, 4))
+        self._cruz_fast_indicator = self._create_combo(
+            self._cruz_rapida_panel,
+            cruz_indic_items,
+            ctk.StringVar(value="Nao usar"),
+        )
+        self._cruz_fast_indicator.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._cruz_fast_params = self._create_subpanel(self._cruz_rapida_panel)
+        self._cruz_fast_params.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self._cruz_fast_params.grid_columnconfigure(0, weight=1)
+        self._add_label(self._cruz_fast_params, 0, "Periodo", padx=12, pady=(12, 4))
+        self._cruz_fast_period = self._create_entry(self._cruz_fast_params, "14")
+        self._cruz_fast_period.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._cruz_fast_params, 2, "Deslocamento", padx=12)
+        self._cruz_fast_shift = self._create_entry(self._cruz_fast_params, "0")
+        self._cruz_fast_shift.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._cruz_fast_params, 4, "Tipo de media", padx=12)
+        self._cruz_fast_ma_type = self._create_combo(
+            self._cruz_fast_params,
+            cruz_ma_items,
+            ctk.StringVar(value="Simples"),
+        )
+        self._cruz_fast_ma_type.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._cruz_fast_params, 6, "Modo de preco", padx=12)
+        self._cruz_fast_price = self._create_combo(
+            self._cruz_fast_params,
+            cruz_price_items,
+            ctk.StringVar(value="Fechamento"),
+        )
+        self._cruz_fast_price.grid(row=7, column=0, sticky="ew", padx=12, pady=(0, 12))
+
+        self._cruz_lenta_panel = self._create_subpanel(self._cruz_shell)
+        self._cruz_lenta_panel.grid_columnconfigure(0, weight=1)
+        self._add_label(self._cruz_lenta_panel, 0, "Indicador lento", padx=12, pady=(12, 4))
+        self._cruz_slow_indicator = self._create_combo(
+            self._cruz_lenta_panel,
+            cruz_indic_items,
+            ctk.StringVar(value="Fechamento da vela"),
+        )
+        self._cruz_slow_indicator.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._cruz_slow_params = self._create_subpanel(self._cruz_lenta_panel)
+        self._cruz_slow_params.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self._cruz_slow_params.grid_columnconfigure(0, weight=1)
+        self._add_label(self._cruz_slow_params, 0, "Periodo", padx=12, pady=(12, 4))
+        self._cruz_slow_period = self._create_entry(self._cruz_slow_params, "21")
+        self._cruz_slow_period.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._cruz_slow_params, 2, "Deslocamento", padx=12)
+        self._cruz_slow_shift = self._create_entry(self._cruz_slow_params, "0")
+        self._cruz_slow_shift.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._cruz_slow_params, 4, "Tipo de media", padx=12)
+        self._cruz_slow_ma_type = self._create_combo(
+            self._cruz_slow_params,
+            cruz_ma_items,
+            ctk.StringVar(value="Simples"),
+        )
+        self._cruz_slow_ma_type.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._cruz_slow_params, 6, "Modo de preco", padx=12)
+        self._cruz_slow_price = self._create_combo(
+            self._cruz_slow_params,
+            cruz_price_items,
+            ctk.StringVar(value="Fechamento"),
+        )
+        self._cruz_slow_price.grid(row=7, column=0, sticky="ew", padx=12, pady=(0, 12))
+
+        self._set_cruz_mode("Nao")
+        self._set_cruz_tab("Geral")
+
     def _create_panel(self, title: str, description: str) -> ctk.CTkFrame:
         panel = ctk.CTkFrame(
             self._body,
@@ -472,6 +652,9 @@ class SinaisView(ctk.CTkFrame):
     def _on_ord_tab_change(self, selected: str) -> None:
         self._set_ord_tab(selected)
 
+    def _on_cruz_tab_change(self, selected: str) -> None:
+        self._set_cruz_tab(selected)
+
     def _set_tab(self, name: str) -> None:
         self._tab_var.set(name)
 
@@ -517,6 +700,51 @@ class SinaisView(ctk.CTkFrame):
         self._canais_desvio.configure(state="normal" if enabled else "disabled")
         self._canais_deslocamento.configure(state="normal" if enabled else "disabled")
         self._canais_preco.configure(state="readonly" if enabled else "disabled")
+
+    def _set_cruz_mode(self, mode: str) -> None:
+        self._cruz_mode.set(mode)
+        enabled = mode == "Sim"
+        self._cruz_yes.select() if enabled else self._cruz_yes.deselect()
+        self._cruz_no.select() if not enabled else self._cruz_no.deselect()
+        self._cruz_tabs.configure(state="normal" if enabled else "disabled")
+        self._sync_cruz_controls()
+
+    def _set_cruz_tab(self, tab_name: str) -> None:
+        self._cruz_tab_var.set(tab_name)
+        self._cruz_geral_panel.grid_forget()
+        self._cruz_rapida_panel.grid_forget()
+        self._cruz_lenta_panel.grid_forget()
+
+        if tab_name == "Geral":
+            self._cruz_geral_panel.grid(row=0, column=0, sticky="nsew")
+        elif tab_name == "Rapida":
+            self._cruz_rapida_panel.grid(row=0, column=0, sticky="nsew")
+        else:
+            self._cruz_lenta_panel.grid(row=0, column=0, sticky="nsew")
+
+        self._sync_cruz_controls()
+
+    def _sync_cruz_controls(self) -> None:
+        enabled = self._cruz_mode.get() == "Sim"
+        active_tab = self._cruz_tab_var.get()
+
+        self._cruz_fast_combo.configure(state="readonly" if enabled and active_tab == "Geral" else "disabled")
+        self._cruz_signal_combo.configure(state="readonly" if enabled and active_tab == "Geral" else "disabled")
+        self._cruz_slow_combo.configure(state="readonly" if enabled and active_tab == "Geral" else "disabled")
+
+        fast_enabled = enabled and active_tab == "Rapida"
+        self._cruz_fast_indicator.configure(state="readonly" if fast_enabled else "disabled")
+        self._cruz_fast_period.configure(state="normal" if fast_enabled else "disabled")
+        self._cruz_fast_shift.configure(state="normal" if fast_enabled else "disabled")
+        self._cruz_fast_ma_type.configure(state="readonly" if fast_enabled else "disabled")
+        self._cruz_fast_price.configure(state="readonly" if fast_enabled else "disabled")
+
+        slow_enabled = enabled and active_tab == "Lenta"
+        self._cruz_slow_indicator.configure(state="readonly" if slow_enabled else "disabled")
+        self._cruz_slow_period.configure(state="normal" if slow_enabled else "disabled")
+        self._cruz_slow_shift.configure(state="normal" if slow_enabled else "disabled")
+        self._cruz_slow_ma_type.configure(state="readonly" if slow_enabled else "disabled")
+        self._cruz_slow_price.configure(state="readonly" if slow_enabled else "disabled")
 
     def _sync_ordem_controls(self) -> None:
         tabs_enabled = self._ordem_mode.get() == "Limite"
