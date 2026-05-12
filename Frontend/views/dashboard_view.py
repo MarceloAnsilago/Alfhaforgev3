@@ -7,6 +7,7 @@ from views.initial_settings_view import InitialSettingsView
 from views.take_profit_view import TakeProfitView
 from views.stop_movel_view import StopMovelView
 from views.stop_loss_view import StopLossView
+from views.trailing_stop_view import TrailingStopView
 
 
 class DashboardView(ctk.CTkFrame):
@@ -89,6 +90,11 @@ class DashboardView(ctk.CTkFrame):
 
         if item.item_id == "break_even":
             self._current_body = BreakEvenView(self._placeholder, self._theme)
+            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
+            return
+
+        if item.item_id == "trailing_stop":
+            self._current_body = TrailingStopView(self._placeholder, self._theme)
             self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
             return
 
