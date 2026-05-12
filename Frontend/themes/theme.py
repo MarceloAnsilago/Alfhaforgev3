@@ -2,7 +2,10 @@ from dataclasses import dataclass
 
 import customtkinter as ctk
 
-from themes.colors import ColorPalette
+from themes.colors import ColorPalette, modern_legacy_palette, v2_classic_palette
+
+
+DEFAULT_THEME_PRESET = "v2_classic"
 
 
 @dataclass(frozen=True)
@@ -15,13 +18,21 @@ class TypographyScale:
 
 
 class UITheme:
-    def __init__(self) -> None:
-        self.colors = ColorPalette()
+    def __init__(self, preset: str = DEFAULT_THEME_PRESET) -> None:
+        self.preset = preset
+        self.colors = self._build_palette(preset)
         self.typography = TypographyScale()
 
     def font(self, role: str, weight: str = "normal") -> ctk.CTkFont:
         family, size = getattr(self.typography, role)
         return ctk.CTkFont(family=family, size=size, weight=weight)
+
+    def _build_palette(self, preset: str) -> ColorPalette:
+        if preset == "modern_legacy":
+            return modern_legacy_palette()
+        if preset == "v2_classic":
+            return v2_classic_palette()
+        return v2_classic_palette()
 
 
 def configure_ctk(theme: UITheme) -> None:
@@ -33,6 +44,6 @@ def configure_ctk(theme: UITheme) -> None:
     ctk.ThemeManager.theme["CTkLabel"]["text_color"] = [theme.colors.text, theme.colors.text]
     ctk.ThemeManager.theme["CTkButton"]["fg_color"] = [theme.colors.accent, theme.colors.accent]
     ctk.ThemeManager.theme["CTkButton"]["hover_color"] = [theme.colors.accent_hover, theme.colors.accent_hover]
-    ctk.ThemeManager.theme["CTkButton"]["text_color"] = [theme.colors.text, theme.colors.text]
+    ctk.ThemeManager.theme["CTkButton"]["text_color"] = [theme.colors.header_text, theme.colors.header_text]
     ctk.ThemeManager.theme["CTkEntry"]["fg_color"] = [theme.colors.surface_alt, theme.colors.surface_alt]
     ctk.ThemeManager.theme["CTkEntry"]["border_color"] = [theme.colors.border, theme.colors.border]

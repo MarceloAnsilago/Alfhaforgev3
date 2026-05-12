@@ -11,9 +11,12 @@ class SidebarNavItem(ctk.CTkFrame):
             fg_color=theme.colors.sidebar,
             corner_radius=0,
             border_width=0,
-            height=34,
+            height=36,
+            width=214,
         )
-        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=0)
+        self.grid_columnconfigure(2, weight=1)
         self.grid_propagate(False)
 
         self._item = item
@@ -21,14 +24,33 @@ class SidebarNavItem(ctk.CTkFrame):
         self._command = command
         self._active = False
 
+        self._indicator = ctk.CTkFrame(
+            self,
+            fg_color=theme.colors.sidebar,
+            corner_radius=0,
+            width=5,
+            border_width=0,
+        )
+        self._indicator.grid(row=0, column=0, sticky="nsw")
+
+        self._number = ctk.CTkLabel(
+            self,
+            text=f"{item.short_label}.",
+            anchor="e",
+            width=30,
+            text_color=theme.colors.card_soft,
+            font=theme.font("label", weight="bold"),
+        )
+        self._number.grid(row=0, column=1, sticky="e", padx=(10, 8), pady=7)
+
         self._label = ctk.CTkLabel(
             self,
             text=item.label,
             anchor="w",
-            text_color=theme.colors.text_muted,
+            text_color=theme.colors.header_text,
             font=theme.font("body"),
         )
-        self._label.grid(row=0, column=0, sticky="ew", padx=12, pady=7)
+        self._label.grid(row=0, column=2, sticky="ew", padx=(0, 12), pady=7)
 
         self._bind_recursive("<Enter>", self._on_enter)
         self._bind_recursive("<Leave>", self._on_leave)
@@ -37,26 +59,38 @@ class SidebarNavItem(ctk.CTkFrame):
     def set_active(self, active: bool) -> None:
         self._active = active
         if active:
-            self.configure(fg_color=self._theme.colors.sidebar_item_active)
+            self.configure(fg_color=self._theme.colors.sidebar)
+            self._indicator.configure(fg_color=self._theme.colors.sidebar_item_active)
+            self._number.configure(
+                text_color=self._theme.colors.accent_soft,
+                font=self._theme.font("label", weight="bold"),
+            )
             self._label.configure(
-                text_color=self._theme.colors.text,
+                text_color=self._theme.colors.header_text,
                 font=self._theme.font("body", weight="bold"),
             )
             return
 
         self.configure(fg_color=self._theme.colors.sidebar)
+        self._indicator.configure(fg_color=self._theme.colors.sidebar)
+        self._number.configure(
+            text_color=self._theme.colors.card_soft,
+            font=self._theme.font("label", weight="bold"),
+        )
         self._label.configure(
-            text_color=self._theme.colors.text_muted,
+            text_color=self._theme.colors.header_text,
             font=self._theme.font("body"),
         )
 
     def _bind_recursive(self, sequence: str, callback) -> None:
-        for widget in [self, self._label]:
+        for widget in [self, self._indicator, self._number, self._label]:
             widget.bind(sequence, callback)
 
     def _on_enter(self, _event) -> None:
         if not self._active:
             self.configure(fg_color=self._theme.colors.sidebar_item_hover)
+            self._indicator.configure(fg_color=self._theme.colors.sidebar_item_hover)
+            self._number.configure(text_color=self._theme.colors.header_text)
 
     def _on_leave(self, _event) -> None:
         if not self._active:
@@ -74,7 +108,7 @@ class Sidebar(ctk.CTkFrame):
             corner_radius=0,
             border_width=1,
             border_color=theme.colors.border,
-            width=210,
+            width=240,
         )
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -93,18 +127,23 @@ class Sidebar(ctk.CTkFrame):
             button.set_active(key == item_id)
 
     def _build_brand(self) -> None:
-        brand_frame = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
+        brand_frame = ctk.CTkFrame(
+            self,
+            fg_color=self._theme.colors.surface,
+            corner_radius=0,
+            border_width=0,
+        )
         brand_frame.grid(row=0, column=0, sticky="ew", padx=12, pady=(16, 10))
 
         ctk.CTkLabel(
             brand_frame,
-            text="ALPHAFORGE V3",
+            text="Construtor | EasyPanel V3",
             text_color=self._theme.colors.text,
-            font=self._theme.font("label", weight="bold"),
+            font=self._theme.font("subtitle", weight="normal"),
         ).pack(anchor="w")
         ctk.CTkLabel(
             brand_frame,
-            text="Estrutura inicial",
+            text="Sidebar mantida, identidade visual inspirada no V2",
             text_color=self._theme.colors.text_subtle,
             font=self._theme.font("caption"),
         ).pack(anchor="w", pady=(2, 0))
@@ -116,15 +155,34 @@ class Sidebar(ctk.CTkFrame):
 
         ctk.CTkLabel(
             nav_frame,
-            text="Abas",
-            text_color=self._theme.colors.text_subtle,
+            text="Modulos",
+            text_color=self._theme.colors.card_soft,
             font=self._theme.font("label", weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=4, pady=(0, 10))
+        ).grid(row=0, column=0, sticky="w", padx=2, pady=(0, 8))
+
+        rail = ctk.CTkFrame(
+            nav_frame,
+            fg_color=self._theme.colors.header_dark,
+            corner_radius=0,
+            border_width=0,
+        )
+        rail.grid(row=1, column=0, sticky="ew")
+        rail.grid_columnconfigure(0, weight=1)
 
         for index, item in enumerate(self._items, start=1):
-            button = SidebarNavItem(nav_frame, item, self._theme, self._handle_select)
-            button.grid(row=index, column=0, sticky="ew", pady=1)
+            button = SidebarNavItem(rail, item, self._theme, self._handle_select)
+            button.grid(row=index - 1, column=0, sticky="ew", pady=0)
             self._buttons[item.item_id] = button
+
+            if index < len(self._items):
+                divider = ctk.CTkFrame(
+                    rail,
+                    fg_color=self._theme.colors.sidebar_item_hover,
+                    corner_radius=0,
+                    height=1,
+                    border_width=0,
+                )
+                divider.grid(row=index, column=0, sticky="ew")
 
     def _build_footer(self) -> None:
         footer = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
@@ -132,9 +190,9 @@ class Sidebar(ctk.CTkFrame):
 
         ctk.CTkLabel(
             footer,
-            text="MVP sem integracao",
+            text="Preset ativo: v2_classic",
             anchor="w",
-            text_color=self._theme.colors.text_subtle,
+            text_color=self._theme.colors.card_soft,
             font=self._theme.font("caption"),
         ).pack(anchor="w")
 
