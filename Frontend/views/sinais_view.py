@@ -79,6 +79,7 @@ class SinaisView(ctk.CTkFrame):
         ).grid(row=1, column=0, columnspan=5, sticky="ew", padx=18, pady=(0, 18))
 
         self._build_tipo_ordens_card(panel)
+        self._build_filtro_card(panel)
 
         return panel
 
@@ -156,26 +157,29 @@ class SinaisView(ctk.CTkFrame):
         )
         self._ord_ref_check.grid(row=0, column=0, sticky="w", padx=12, pady=(12, 10))
         self._add_label(self._ord_ref_panel, 1, "Referencia:", padx=12)
-        self._create_combo(
+        self._ord_ref_base = self._create_combo(
             self._ord_ref_panel,
             ["Maxima", "Minima", "Abertura", "Fechamento"],
             ctk.StringVar(value="Maxima"),
-        ).grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
+        )
+        self._ord_ref_base.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
         self._add_label(self._ord_ref_panel, 3, "Candle:", padx=12)
-        self._create_combo(
+        self._ord_ref_candle = self._create_combo(
             self._ord_ref_panel,
             ["Atual", "Ultimo", "Penultimo", "Antepenultimo"],
             ctk.StringVar(value="Atual"),
-        ).grid(row=4, column=0, sticky="ew", padx=12, pady=(0, 10))
+        )
+        self._ord_ref_candle.grid(row=4, column=0, sticky="ew", padx=12, pady=(0, 10))
         self._add_label(self._ord_ref_panel, 5, "Distancia", padx=12)
         self._ord_ref_distance = self._create_entry(self._ord_ref_panel, "0")
         self._ord_ref_distance.grid(row=6, column=0, sticky="ew", padx=12, pady=(0, 10))
         self._add_label(self._ord_ref_panel, 7, "Expirar:", padx=12)
-        self._create_combo(
+        self._ord_ref_expire = self._create_combo(
             self._ord_ref_panel,
             ["Nao expirar", "1 candle", "2 candles", "3 candles", "4 candles"],
             ctk.StringVar(value="Nao expirar"),
-        ).grid(row=8, column=0, sticky="ew", padx=12, pady=(0, 12))
+        )
+        self._ord_ref_expire.grid(row=8, column=0, sticky="ew", padx=12, pady=(0, 12))
 
         self._ord_media_panel = self._create_subpanel(self._ord_panel_shell)
         self._ord_media_panel.grid_columnconfigure(0, weight=1)
@@ -189,23 +193,75 @@ class SinaisView(ctk.CTkFrame):
         self._ord_media_candles = self._create_entry(self._ord_media_panel, "0")
         self._ord_media_candles.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 10))
         self._add_label(self._ord_media_panel, 3, "Referencia:", padx=12)
-        self._create_combo(
+        self._ord_media_base = self._create_combo(
             self._ord_media_panel,
             ["Maxima", "Minima", "Abertura", "Fechamento"],
             ctk.StringVar(value="Maxima"),
-        ).grid(row=4, column=0, sticky="ew", padx=12, pady=(0, 10))
+        )
+        self._ord_media_base.grid(row=4, column=0, sticky="ew", padx=12, pady=(0, 10))
         self._add_label(self._ord_media_panel, 5, "Distancia", padx=12)
         self._ord_media_distance = self._create_entry(self._ord_media_panel, "0")
         self._ord_media_distance.grid(row=6, column=0, sticky="ew", padx=12, pady=(0, 10))
         self._add_label(self._ord_media_panel, 7, "Expirar:", padx=12)
-        self._create_combo(
+        self._ord_media_expire = self._create_combo(
             self._ord_media_panel,
             ["Nao expirar", "1 candle", "2 candles", "3 candles", "4 candles"],
             ctk.StringVar(value="Nao expirar"),
-        ).grid(row=8, column=0, sticky="ew", padx=12, pady=(0, 12))
+        )
+        self._ord_media_expire.grid(row=8, column=0, sticky="ew", padx=12, pady=(0, 12))
 
         self._set_ordem_mode("Mercado")
         self._set_ord_tab("Referencia")
+
+    def _build_filtro_card(self, panel: ctk.CTkFrame) -> None:
+        card = ctk.CTkFrame(
+            panel,
+            fg_color=self._theme.colors.card,
+            corner_radius=0,
+            border_width=1,
+            border_color=self._theme.colors.border,
+        )
+        card.grid(row=2, column=1, sticky="nsew", padx=6, pady=(0, 18))
+        card.grid_columnconfigure(0, weight=1)
+        card.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            card,
+            text="Usar filtro",
+            text_color=self._theme.colors.text,
+            font=self._theme.font("subtitle"),
+            anchor="w",
+        ).grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 16))
+
+        self._filtro_enabled = self._create_checkbox(card, "Ativar filtro", lambda: None)
+        self._filtro_enabled.grid(row=1, column=0, columnspan=2, sticky="w", padx=16, pady=(0, 16))
+
+        self._add_label(card, 2, "Medir em")
+        self._filtro_measure = self._create_combo(
+            card,
+            ["Pontos", "Percentual"],
+            ctk.StringVar(value="Pontos"),
+        )
+        self._filtro_measure.grid(row=3, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+
+        self._add_label(card, 4, "Tempo grafico")
+        self._filtro_timeframe = self._create_combo(
+            card,
+            ["Corrente", "M1", "M5", "M15", "M30", "H1", "H4", "D1"],
+            ctk.StringVar(value="Corrente"),
+        )
+        self._filtro_timeframe.grid(row=5, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+
+        filtro_labels = ["Tam. min da vela", "Tam. max", "Min. pavios", "Max. pavios"]
+        filtro_defaults = ["0", "0", "0", "0"]
+        self._filtro_entries = []
+        row = 6
+        for label, default in zip(filtro_labels, filtro_defaults):
+            self._add_label(card, row, label)
+            entry = self._create_entry(card, default)
+            entry.grid(row=row + 1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+            self._filtro_entries.append(entry)
+            row += 2
 
     def _create_panel(self, title: str, description: str) -> ctk.CTkFrame:
         panel = ctk.CTkFrame(
@@ -347,6 +403,7 @@ class SinaisView(ctk.CTkFrame):
         self._ordem_mode.set(mode)
         self._ordem_market.select() if mode == "Mercado" else self._ordem_market.deselect()
         self._ordem_limit.select() if mode == "Limite" else self._ordem_limit.deselect()
+        self._sync_ordem_controls()
 
     def _set_ord_tab(self, tab_name: str) -> None:
         self._ord_tab_var.set(tab_name)
@@ -357,13 +414,28 @@ class SinaisView(ctk.CTkFrame):
         if tab_name == "Referencia":
             self._ord_media_panel.grid_forget()
             self._ord_ref_panel.grid(row=0, column=0, sticky="nsew")
-            self._ord_ref_distance.configure(state="normal")
-            self._ord_media_candles.configure(state="disabled")
-            self._ord_media_distance.configure(state="disabled")
+            self._sync_ordem_controls()
             return
 
         self._ord_ref_panel.grid_forget()
         self._ord_media_panel.grid(row=0, column=0, sticky="nsew")
-        self._ord_ref_distance.configure(state="disabled")
-        self._ord_media_candles.configure(state="normal")
-        self._ord_media_distance.configure(state="normal")
+        self._sync_ordem_controls()
+
+    def _sync_ordem_controls(self) -> None:
+        tabs_enabled = self._ordem_mode.get() == "Limite"
+        self._ord_tabs.configure(state="normal" if tabs_enabled else "disabled")
+        self._ord_ref_check.configure(state="normal" if tabs_enabled else "disabled")
+        self._ord_media_check.configure(state="normal" if tabs_enabled else "disabled")
+
+        ref_enabled = tabs_enabled and self._ord_tab_var.get() == "Referencia"
+        media_enabled = tabs_enabled and self._ord_tab_var.get() == "Media"
+
+        self._ord_ref_base.configure(state="readonly" if ref_enabled else "disabled")
+        self._ord_ref_candle.configure(state="readonly" if ref_enabled else "disabled")
+        self._ord_ref_distance.configure(state="normal" if ref_enabled else "disabled")
+        self._ord_ref_expire.configure(state="readonly" if ref_enabled else "disabled")
+
+        self._ord_media_candles.configure(state="normal" if media_enabled else "disabled")
+        self._ord_media_base.configure(state="readonly" if media_enabled else "disabled")
+        self._ord_media_distance.configure(state="normal" if media_enabled else "disabled")
+        self._ord_media_expire.configure(state="readonly" if media_enabled else "disabled")
