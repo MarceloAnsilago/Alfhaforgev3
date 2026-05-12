@@ -14,6 +14,9 @@ class MontarSlotState:
     source_var: ctk.StringVar
     params_frame: ctk.CTkFrame
     param_widgets: list[ctk.CTkBaseClass]
+    param_controls: dict[str, ctk.CTkEntry | ctk.CTkComboBox]
+    saved_param_values: dict[str, dict[str, str]]
+    active_indicator: str
     summary_label: ctk.CTkLabel
 
 
@@ -60,6 +63,7 @@ class SinaisView(ctk.CTkFrame):
         self._montar_indicator_fields = self._build_montar_indicator_fields()
         self._montar_slot_states: list[MontarSlotState] = []
         self._montar_logic_rows: list[dict[str, ctk.CTkComboBox]] = []
+        self._montar_logic_saved_values: list[dict[str, str]] = []
         self._montar_logic_static_values = [
             "Nao usar",
             "Valor absoluto",
@@ -1002,6 +1006,9 @@ class SinaisView(ctk.CTkFrame):
             source_var=source_var,
             params_frame=params_frame,
             param_widgets=[],
+            param_controls={},
+            saved_param_values={},
+            active_indicator=indicator_var.get(),
             summary_label=summary_label,
         )
         self._montar_slot_states.append(state)
@@ -1102,12 +1109,27 @@ class SinaisView(ctk.CTkFrame):
 
             self._montar_logic_rows.append(
                 {
+                    "operator": operator_combo,
                     "value": value_combo,
+                    "candle": candle_combo,
+                    "compare": compare_combo,
                     "compare_value": compare_value_combo,
+                    "compare_candle": compare_candle_combo,
+                }
+            )
+            self._montar_logic_saved_values.append(
+                {
+                    "operator": operator_combo.get(),
+                    "value": value_combo.get(),
+                    "candle": candle_combo.get(),
+                    "compare": compare_combo.get(),
+                    "compare_value": compare_value_combo.get(),
+                    "compare_candle": compare_candle_combo.get(),
                 }
             )
 
     def _on_montar_slot_change(self, state: MontarSlotState) -> None:
+        self._save_montar_slot_values(state)
         self._render_montar_slot_fields(state)
         self._update_montar_slot_summary(state)
         self._refresh_montar_logic_values()
@@ -1116,8 +1138,10 @@ class SinaisView(ctk.CTkFrame):
         for widget in state.param_widgets:
             widget.destroy()
         state.param_widgets.clear()
+        state.param_controls.clear()
 
         fields = self._montar_indicator_fields.get(state.indicator_var.get(), [])
+        state.active_indicator = state.indicator_var.get()
         if not fields:
             label = ctk.CTkLabel(
                 state.params_frame,
@@ -1132,6 +1156,7 @@ class SinaisView(ctk.CTkFrame):
             state.param_widgets.append(label)
             return
 
+        saved_values = state.saved_param_values.get(state.active_indicator, {})
         row = 0
         for index, (label_text, default_value, combo_values) in enumerate(fields):
             column = index % 2
@@ -1155,10 +1180,14 @@ class SinaisView(ctk.CTkFrame):
             state.param_widgets.append(label)
 
             if combo_values is None:
-                control = self._create_entry(state.params_frame, default_value)
+                control = self._create_entry(state.params_frame, saved_values.get(label_text, default_value))
                 control_state = "normal"
             else:
-                control = self._create_combo(state.params_frame, combo_values, ctk.StringVar(value=default_value))
+                control = self._create_combo(
+                    state.params_frame,
+                    combo_values,
+                    ctk.StringVar(value=saved_values.get(label_text, default_value)),
+                )
                 control_state = "readonly"
 
             control.grid(
@@ -1170,6 +1199,16 @@ class SinaisView(ctk.CTkFrame):
             )
             control.configure(state=control_state)
             state.param_widgets.append(control)
+            state.param_controls[label_text] = control
+
+    def _save_montar_slot_values(self, state: MontarSlotState) -> None:
+        if state.active_indicator == "Nao usar":
+            return
+
+        saved_values: dict[str, str] = {}
+        for field_name, control in state.param_controls.items():
+            saved_values[field_name] = control.get()
+        state.saved_param_values[state.active_indicator] = saved_values
 
     def _update_montar_slot_summary(self, state: MontarSlotState) -> None:
         indicator_name = state.indicator_var.get()
@@ -1194,12 +1233,18 @@ class SinaisView(ctk.CTkFrame):
 
     def _refresh_montar_logic_values(self) -> None:
         values = self._build_montar_logic_dynamic_values()
-        for row in self._montar_logic_rows:
+        for index, row in enumerate(self._montar_logic_rows):
+            saved_row = self._montar_logic_saved_values[index]
+            for combo_name, combo in row.items():
+                current = combo.get()
+                if current:
+                    saved_row[combo_name] = current
+
             for combo_name in ("value", "compare_value"):
                 combo = row[combo_name]
-                current = combo.get()
                 combo.configure(values=values)
-                combo.set(current if current in values else values[0])
+                desired_value = saved_row.get(combo_name, values[0])
+                combo.set(desired_value if desired_value in values else values[0])
 
     def _create_panel(self, title: str, description: str) -> ctk.CTkFrame:
         panel = ctk.CTkFrame(
