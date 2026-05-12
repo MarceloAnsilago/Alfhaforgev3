@@ -1,7 +1,20 @@
+from dataclasses import dataclass
+
 import customtkinter as ctk
 
 from models.initial_settings import build_initial_settings_options
 from themes.theme import UITheme
+
+
+@dataclass
+class MontarSlotState:
+    group_id: int
+    indicator_var: ctk.StringVar
+    timeframe_var: ctk.StringVar
+    source_var: ctk.StringVar
+    period_entry: ctk.CTkEntry
+    shift_entry: ctk.CTkEntry
+    summary_label: ctk.CTkLabel
 
 
 class SinaisView(ctk.CTkFrame):
@@ -43,11 +56,45 @@ class SinaisView(ctk.CTkFrame):
         self._body.grid_columnconfigure(0, weight=1)
         self._body.grid_rowconfigure(0, weight=1)
 
+        self._montar_indicator_outputs = self._build_montar_indicator_outputs()
+        self._montar_slot_states: list[MontarSlotState] = []
+        self._montar_logic_rows: list[dict[str, ctk.CTkComboBox]] = []
+        self._montar_logic_static_values = [
+            "Nao usar",
+            "Valor absoluto",
+            "Valor em pontos",
+            "Preco de entrada",
+            "Preco medio",
+            "Preco atual",
+            "Fechamento da vela",
+            "Abertura da vela",
+            "Maxima da vela",
+            "Minima da vela",
+            "Fechamento do dia",
+            "Abertura do dia",
+            "Maxima do dia",
+            "Minima do dia",
+            "Tamanho da vela",
+            "Corpo da vela",
+            "Empty Value",
+        ]
+        self._montar_logic_operators = ["SE", "E", "OU", "E SE", "OU SE", "E Tambem", "OU Tambem"]
+        self._montar_logic_candles = ["Vela atual", "Vela anterior", "Penultima vela", "Antepenultima"]
+        self._montar_logic_compares = [
+            "Maior que",
+            "Menor que",
+            "Maior ou igual que",
+            "Menor ou igual que",
+            "Igual que",
+            "Diferente de",
+            "Cruzar p/ cima de",
+            "Cruzar p/ baixo de",
+            "Cruzar e fechar acima de",
+            "Cruzar e fechar abaixo de",
+        ]
+
         self._sinais_panel = self._create_sinais_panel()
-        self._montar_panel = self._create_panel(
-            "Montar sinais",
-            "Estrutura base pronta. Na proxima etapa entram os slots e a composicao logica dos sinais.",
-        )
+        self._montar_panel = self._create_montar_panel()
 
         self._set_tab("Sinais")
 
@@ -720,6 +767,359 @@ class SinaisView(ctk.CTkFrame):
         self._set_sobre_tab("Indicador")
         self._show_sobre_param_group(self._sobre_indicator_combo.get())
         self._sync_sobre_controls()
+
+    def _build_montar_indicator_outputs(self) -> dict[str, list[str]]:
+        return {
+            "Nao usar": [],
+            "Keltner": ["keltner central", "keltner superior", "keltner inferior"],
+            "Donchian": ["donchian superior", "donchian central", "donchian inferior"],
+            "Regressao": ["regressao ratio"],
+            "Afastamento da media": ["afastamento medio"],
+            "Desvio medio": ["desvio afastamento", "desvio medio"],
+            "ATR com desvio": ["atr superior", "atr central", "atr inferior"],
+            "Media movel": ["media movel"],
+            "Bandas de Bollinger": ["bandas superior", "bandas central", "bandas inferior"],
+            "Envelopes": ["envelope superior", "envelope inferior"],
+            "Estocastico": ["estocastico principal", "estocastico sinal"],
+            "RSI": ["rsi"],
+            "StdDev": ["desvio padrao"],
+            "Volume": ["volume"],
+            "ATR": ["atr"],
+            "Parabolic SAR": ["parabolic sar"],
+            "Fractal": ["fractal superior", "fractal inferior"],
+            "OBV": ["obv"],
+            "MACD": ["macd histograma", "macd sinal"],
+            "Acumulacao/Distribuicao (A/D)": ["acumulacao/distribuicao (a/d)"],
+            "MFI (Money Flow Index)": ["mfi (money flow index)"],
+            "Vidya": ["vidya valor"],
+            "Tema": ["tema valor"],
+            "FRAMA": ["frama valor"],
+            "Trix": ["trix valor"],
+            "Bears Power": ["bears power valor"],
+            "Bulls Power": ["bulls power valor"],
+            "Chaikin Oscilador": ["chaikin oscilador valor"],
+            "Accelerator Oscillator": ["accelerator oscillator valor"],
+            "Awesome Oscillator": ["awesome oscillator valor"],
+            "CCI (Commodity Channel Index)": ["cci valor"],
+            "DeMarker": ["demarker valor"],
+            "Alligator": ["alligator mandibula", "alligator dente", "alligator boca"],
+            "Nuvem de Ichimoku": [
+                "ichimoku tenkan-sen",
+                "ichimoku kijun-sen",
+                "ichimoku senkou span a",
+                "ichimoku senkou span b",
+                "ichimoku chinkou span",
+            ],
+            "ADX (Average Direcional index)": ["adx", "di+", "di-"],
+            "ADX Wilder": ["adx wilder", "adx wilder di+", "adx wilder di-"],
+            "Gator": ["gator superior", "gator inferior"],
+            "Williams Percentual Range": ["wpr"],
+            "Market Facilitation Index": ["market facilitation index"],
+            "Momentum": ["momentum"],
+            "Relative Vigor Index": ["rvi sinal", "rvi principal"],
+        }
+
+    def _create_montar_panel(self) -> ctk.CTkFrame:
+        panel = ctk.CTkFrame(
+            self._body,
+            fg_color=self._theme.colors.card_soft,
+            corner_radius=0,
+            border_width=1,
+            border_color=self._theme.colors.border,
+        )
+        panel.grid_columnconfigure(0, weight=1)
+        panel.grid_rowconfigure(2, weight=1)
+
+        ctk.CTkLabel(
+            panel,
+            text="Montar sinais",
+            text_color=self._theme.colors.text,
+            font=self._theme.font("subtitle"),
+            anchor="w",
+        ).grid(row=0, column=0, sticky="ew", padx=18, pady=(18, 6))
+
+        ctk.CTkLabel(
+            panel,
+            text="Etapa 1 migrada do V2: 4 grupos de origem e composicao logica ligada as saidas de cada grupo.",
+            text_color=self._theme.colors.text_muted,
+            font=self._theme.font("body"),
+            justify="left",
+            anchor="w",
+            wraplength=980,
+        ).grid(row=1, column=0, sticky="ew", padx=18, pady=(0, 18))
+
+        body = ctk.CTkScrollableFrame(
+            panel,
+            fg_color="transparent",
+            corner_radius=0,
+            border_width=0,
+            scrollbar_button_color=self._theme.colors.accent,
+            scrollbar_button_hover_color=self._theme.colors.accent_hover,
+        )
+        body.grid(row=2, column=0, sticky="nsew", padx=18, pady=(0, 18))
+        body.grid_columnconfigure(0, weight=1)
+
+        slots_frame = ctk.CTkFrame(
+            body,
+            fg_color="transparent",
+            corner_radius=0,
+            border_width=0,
+        )
+        slots_frame.grid(row=0, column=0, sticky="ew", pady=(0, 14))
+        slots_frame.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="montar-slots")
+
+        logic_frame = ctk.CTkFrame(
+            body,
+            fg_color=self._theme.colors.card,
+            corner_radius=0,
+            border_width=1,
+            border_color=self._theme.colors.border,
+        )
+        logic_frame.grid(row=1, column=0, sticky="nsew")
+        logic_frame.grid_columnconfigure(0, weight=1)
+
+        for index in range(4):
+            slot_card = self._create_montar_slot_card(slots_frame, index + 1)
+            slot_card.grid(row=0, column=index, sticky="nsew", padx=(0 if index == 0 else 4, 0))
+
+        self._build_montar_logic_card(logic_frame)
+        self._refresh_montar_logic_values()
+        return panel
+
+    def _create_montar_slot_card(self, master, group_id: int) -> ctk.CTkFrame:
+        card = ctk.CTkFrame(
+            master,
+            fg_color=self._theme.colors.card,
+            corner_radius=0,
+            border_width=1,
+            border_color=self._theme.colors.border,
+        )
+        card.grid_columnconfigure(0, weight=1)
+
+        indicator_names = list(self._montar_indicator_outputs.keys())
+
+        ctk.CTkLabel(
+            card,
+            text=f"Grupo {group_id}",
+            text_color=self._theme.colors.text,
+            font=self._theme.font("body", weight="bold"),
+            anchor="w",
+        ).grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+
+        ctk.CTkLabel(
+            card,
+            text="Cada grupo origina sinais e saidas que depois entram na composicao logica abaixo.",
+            text_color=self._theme.colors.text_subtle,
+            font=self._theme.font("label"),
+            anchor="w",
+            justify="left",
+            wraplength=220,
+        ).grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+
+        self._add_label(card, 2, "Indicador", padx=12)
+        indicator_var = ctk.StringVar(value="Nao usar")
+        indicator_combo = self._create_combo(card, indicator_names, indicator_var)
+        indicator_combo.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 10))
+
+        self._add_label(card, 4, "Tempo grafico", padx=12)
+        timeframe_var = ctk.StringVar(value="Corrente")
+        timeframe_combo = self._create_combo(card, self._initial_options.tempos_graficos, timeframe_var)
+        timeframe_combo.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 10))
+
+        self._add_label(card, 6, "Origem de preco", padx=12)
+        source_var = ctk.StringVar(value="Fechamento")
+        source_combo = self._create_combo(
+            card,
+            ["Fechamento", "Abertura", "Maxima", "Minima", "Tipico", "Mediano"],
+            source_var,
+        )
+        source_combo.grid(row=7, column=0, sticky="ew", padx=12, pady=(0, 10))
+
+        params_frame = ctk.CTkFrame(
+            card,
+            fg_color=self._theme.colors.surface,
+            corner_radius=0,
+            border_width=1,
+            border_color=self._theme.colors.border,
+        )
+        params_frame.grid(row=8, column=0, sticky="ew", padx=12, pady=(0, 10))
+        params_frame.grid_columnconfigure((0, 1), weight=1, uniform=f"slot-{group_id}-params")
+
+        ctk.CTkLabel(
+            params_frame,
+            text="Periodo",
+            anchor="w",
+            text_color=self._theme.colors.text_muted,
+            font=self._theme.font("label"),
+        ).grid(row=0, column=0, sticky="ew", padx=(10, 5), pady=(10, 4))
+        period_entry = self._create_entry(params_frame, "14")
+        period_entry.grid(row=1, column=0, sticky="ew", padx=(10, 5), pady=(0, 10))
+
+        ctk.CTkLabel(
+            params_frame,
+            text="Shift",
+            anchor="w",
+            text_color=self._theme.colors.text_muted,
+            font=self._theme.font("label"),
+        ).grid(row=0, column=1, sticky="ew", padx=(5, 10), pady=(10, 4))
+        shift_entry = self._create_entry(params_frame, "0")
+        shift_entry.grid(row=1, column=1, sticky="ew", padx=(5, 10), pady=(0, 10))
+
+        summary_label = ctk.CTkLabel(
+            card,
+            text="Sem saidas expostas para a logica.",
+            text_color=self._theme.colors.text_subtle,
+            font=self._theme.font("label"),
+            anchor="w",
+            justify="left",
+            wraplength=220,
+        )
+        summary_label.grid(row=9, column=0, sticky="ew", padx=12, pady=(0, 12))
+
+        state = MontarSlotState(
+            group_id=group_id,
+            indicator_var=indicator_var,
+            timeframe_var=timeframe_var,
+            source_var=source_var,
+            period_entry=period_entry,
+            shift_entry=shift_entry,
+            summary_label=summary_label,
+        )
+        self._montar_slot_states.append(state)
+        indicator_combo.configure(command=lambda _value, slot_state=state: self._on_montar_slot_change(slot_state))
+        self._update_montar_slot_summary(state)
+        return card
+
+    def _build_montar_logic_card(self, logic_frame: ctk.CTkFrame) -> None:
+        ctk.CTkLabel(
+            logic_frame,
+            text="Composicao logica dos sinais",
+            text_color=self._theme.colors.text,
+            font=self._theme.font("subtitle"),
+            anchor="w",
+        ).grid(row=0, column=0, sticky="ew", padx=16, pady=(16, 6))
+
+        ctk.CTkLabel(
+            logic_frame,
+            text="As opcoes de valor ref. e valor comp. sao reconstruidas a partir das saidas dos grupos 1 a 4.",
+            text_color=self._theme.colors.text_muted,
+            font=self._theme.font("body"),
+            anchor="w",
+            justify="left",
+            wraplength=980,
+        ).grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 14))
+
+        header_frame = ctk.CTkFrame(
+            logic_frame,
+            fg_color="transparent",
+            corner_radius=0,
+            border_width=0,
+        )
+        header_frame.grid(row=2, column=0, sticky="ew", padx=16)
+        header_frame.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1, uniform="montar-logic")
+
+        titles = ["Operador", "Valor ref.", "Velas", "Comparacao", "Valor comp.", "Velas comp."]
+        for column, title in enumerate(titles):
+            ctk.CTkLabel(
+                header_frame,
+                text=title,
+                anchor="w",
+                text_color=self._theme.colors.text_muted,
+                font=self._theme.font("label", weight="bold"),
+            ).grid(row=0, column=column, sticky="ew", padx=(0 if column == 0 else 4, 0), pady=(0, 4))
+
+        rows_frame = ctk.CTkFrame(
+            logic_frame,
+            fg_color="transparent",
+            corner_radius=0,
+            border_width=0,
+        )
+        rows_frame.grid(row=3, column=0, sticky="nsew", padx=16, pady=(0, 16))
+        rows_frame.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1, uniform="montar-logic")
+
+        for row_index in range(5):
+            operator_combo = self._create_combo(
+                rows_frame,
+                self._montar_logic_operators,
+                ctk.StringVar(value=self._montar_logic_operators[0 if row_index == 0 else min(row_index, len(self._montar_logic_operators) - 1)]),
+            )
+            operator_combo.grid(row=row_index, column=0, sticky="ew", padx=(0, 4), pady=(0, 8))
+
+            value_combo = self._create_combo(
+                rows_frame,
+                self._montar_logic_static_values,
+                ctk.StringVar(value=self._montar_logic_static_values[0]),
+            )
+            value_combo.grid(row=row_index, column=1, sticky="ew", padx=4, pady=(0, 8))
+
+            candle_combo = self._create_combo(
+                rows_frame,
+                self._montar_logic_candles,
+                ctk.StringVar(value=self._montar_logic_candles[0]),
+            )
+            candle_combo.grid(row=row_index, column=2, sticky="ew", padx=4, pady=(0, 8))
+
+            compare_combo = self._create_combo(
+                rows_frame,
+                self._montar_logic_compares,
+                ctk.StringVar(value=self._montar_logic_compares[0]),
+            )
+            compare_combo.grid(row=row_index, column=3, sticky="ew", padx=4, pady=(0, 8))
+
+            compare_value_combo = self._create_combo(
+                rows_frame,
+                self._montar_logic_static_values,
+                ctk.StringVar(value=self._montar_logic_static_values[0]),
+            )
+            compare_value_combo.grid(row=row_index, column=4, sticky="ew", padx=4, pady=(0, 8))
+
+            compare_candle_combo = self._create_combo(
+                rows_frame,
+                self._montar_logic_candles,
+                ctk.StringVar(value=self._montar_logic_candles[0]),
+            )
+            compare_candle_combo.grid(row=row_index, column=5, sticky="ew", padx=(4, 0), pady=(0, 8))
+
+            self._montar_logic_rows.append(
+                {
+                    "value": value_combo,
+                    "compare_value": compare_value_combo,
+                }
+            )
+
+    def _on_montar_slot_change(self, state: MontarSlotState) -> None:
+        self._update_montar_slot_summary(state)
+        self._refresh_montar_logic_values()
+
+    def _update_montar_slot_summary(self, state: MontarSlotState) -> None:
+        indicator_name = state.indicator_var.get()
+        outputs = self._montar_indicator_outputs.get(indicator_name, [])
+        if not outputs:
+            state.summary_label.configure(
+                text=f"Grupo {state.group_id}: sem saidas para a composicao logica enquanto o indicador estiver em 'Nao usar'."
+            )
+            return
+
+        output_text = ", ".join(f"{state.group_id} {name}" for name in outputs)
+        state.summary_label.configure(
+            text=f"Grupo {state.group_id}: {len(outputs)} saida(s) exposta(s) -> {output_text}."
+        )
+
+    def _build_montar_logic_dynamic_values(self) -> list[str]:
+        values = list(self._montar_logic_static_values)
+        for state in self._montar_slot_states:
+            for output_name in self._montar_indicator_outputs.get(state.indicator_var.get(), []):
+                values.append(f"{state.group_id} {output_name}")
+        return values
+
+    def _refresh_montar_logic_values(self) -> None:
+        values = self._build_montar_logic_dynamic_values()
+        for row in self._montar_logic_rows:
+            for combo_name in ("value", "compare_value"):
+                combo = row[combo_name]
+                current = combo.get()
+                combo.configure(values=values)
+                combo.set(current if current in values else values[0])
 
     def _create_panel(self, title: str, description: str) -> ctk.CTkFrame:
         panel = ctk.CTkFrame(
