@@ -84,6 +84,7 @@ class SinaisView(ctk.CTkFrame):
         self._build_filtro_card(panel)
         self._build_canais_card(panel)
         self._build_cruzamentos_card(panel)
+        self._build_sobre_card(panel)
 
         return panel
 
@@ -527,6 +528,199 @@ class SinaisView(ctk.CTkFrame):
         self._set_cruz_mode("Nao")
         self._set_cruz_tab("Geral")
 
+    def _build_sobre_card(self, panel: ctk.CTkFrame) -> None:
+        card = ctk.CTkFrame(
+            panel,
+            fg_color=self._theme.colors.card,
+            corner_radius=0,
+            border_width=1,
+            border_color=self._theme.colors.border,
+        )
+        card.grid(row=2, column=4, sticky="nsew", padx=(6, 18), pady=(0, 18))
+        card.grid_columnconfigure(0, weight=1)
+        card.grid_columnconfigure(1, weight=1)
+        card.grid_rowconfigure(3, weight=1)
+
+        ctk.CTkLabel(
+            card,
+            text="Sobrecomprado / sobrevendido",
+            text_color=self._theme.colors.text,
+            font=self._theme.font("subtitle"),
+            anchor="w",
+        ).grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 16))
+
+        self._sobre_enabled = self._create_checkbox(card, "Usar sobrecomprado / sobrevenda", lambda: self._toggle_sobre())
+        self._sobre_enabled.grid(row=1, column=0, columnspan=2, sticky="w", padx=16, pady=(0, 12))
+
+        self._sobre_tab_var = ctk.StringVar(value="Indicador")
+        self._sobre_tabs = ctk.CTkSegmentedButton(
+            card,
+            values=["Indicador", "Parametros"],
+            variable=self._sobre_tab_var,
+            command=self._on_sobre_tab_change,
+            height=32,
+            corner_radius=0,
+            fg_color=self._theme.colors.header_dark,
+            selected_color=self._theme.colors.accent,
+            selected_hover_color=self._theme.colors.accent_hover,
+            unselected_color=self._theme.colors.header_dark,
+            unselected_hover_color=self._theme.colors.sidebar_item_hover,
+            text_color=self._theme.colors.header_text,
+            text_color_disabled=self._theme.colors.card_soft,
+            font=self._theme.font("label", weight="bold"),
+        )
+        self._sobre_tabs.grid(row=2, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+
+        self._sobre_shell = ctk.CTkFrame(card, fg_color="transparent", corner_radius=0, border_width=0)
+        self._sobre_shell.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=16, pady=(0, 16))
+        self._sobre_shell.grid_columnconfigure(0, weight=1)
+        self._sobre_shell.grid_rowconfigure(0, weight=1)
+
+        sobre_indic_items = [
+            "MACD",
+            "Estocastico",
+            "RSI",
+            "DeMarker",
+            "Regressao linear",
+            "Desvio da media",
+            "MFI",
+            "Bears Power",
+            "Bulls Power",
+            "CCI",
+            "Ichimoku Tenkan-sen",
+            "Ichimoku Kijun-sen",
+            "Ichimoku Senkou Span A",
+            "Ichimoku Senkou Span B",
+            "Ichimoku Chinkou Spa",
+        ]
+        sobre_entry_items = ["Ao entrar", "Ao sair", "Estando"]
+        sobre_sentido_items = ["Sobrecompra compra", "Sobrecompra venda"]
+        sobre_price_items = ["Fechamento", "Abertura", "Maximo", "Minimo", "Mediano", "Tipico", "Medio"]
+        sobre_ma_items = ["Simples", "Exponencial", "Suavizada", "Linear ponderada", "Smoothed"]
+        sobre_stoch_type_items = ["Minimo/Maximo", "Fechamento/Abertura"]
+        sobre_volume_items = ["Tick", "Real"]
+
+        self._sobre_indicator_panel = self._create_subpanel(self._sobre_shell)
+        self._sobre_indicator_panel.grid_columnconfigure(0, weight=1)
+        self._add_label(self._sobre_indicator_panel, 0, "Indicador", padx=12, pady=(12, 4))
+        self._sobre_indicator_combo = self._create_combo(
+            self._sobre_indicator_panel,
+            sobre_indic_items,
+            ctk.StringVar(value="MACD"),
+        )
+        self._sobre_indicator_combo.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._sobre_indicator_panel, 2, "Entrada", padx=12)
+        self._sobre_entry_combo = self._create_combo(
+            self._sobre_indicator_panel,
+            sobre_entry_items,
+            ctk.StringVar(value="Ao entrar"),
+        )
+        self._sobre_entry_combo.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._sobre_indicator_panel, 4, "Sobrecompra", padx=12)
+        self._sobre_overbought = self._create_entry(self._sobre_indicator_panel, "2")
+        self._sobre_overbought.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._sobre_indicator_panel, 6, "Sobrevenda", padx=12)
+        self._sobre_oversold = self._create_entry(self._sobre_indicator_panel, "-2")
+        self._sobre_oversold.grid(row=7, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._add_label(self._sobre_indicator_panel, 8, "Sentido", padx=12)
+        self._sobre_direction_combo = self._create_combo(
+            self._sobre_indicator_panel,
+            sobre_sentido_items,
+            ctk.StringVar(value="Sobrecompra compra"),
+        )
+        self._sobre_direction_combo.grid(row=9, column=0, sticky="ew", padx=12, pady=(0, 12))
+
+        self._sobre_params_panel = self._create_subpanel(self._sobre_shell)
+        self._sobre_params_panel.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            self._sobre_params_panel,
+            text="Os parametros acompanham o indicador selecionado na aba ao lado.",
+            text_color=self._theme.colors.text_subtle,
+            font=self._theme.font("label"),
+            justify="left",
+            wraplength=220,
+            anchor="w",
+        ).grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 12))
+
+        self._sobre_param_groups: dict[str, list[ctk.CTkBaseClass]] = {}
+        self._sobre_param_fields: dict[str, list[tuple[str, str, list[str] | None]]] = {
+            "MACD": [
+                ("EMA rapida", "12", None),
+                ("EMA lenta", "16", None),
+                ("Sinal", "9", None),
+                ("Modo de preco", "Fechamento", sobre_price_items),
+            ],
+            "Estocastico": [
+                ("K", "5", None),
+                ("D", "3", None),
+                ("Slowing", "3", None),
+                ("Media", "Simples", sobre_ma_items),
+                ("Tipo", "Minimo/Maximo", sobre_stoch_type_items),
+            ],
+            "RSI": [
+                ("Periodo", "14", None),
+                ("Modo de preco", "Fechamento", sobre_price_items),
+            ],
+            "DeMarker": [
+                ("Periodo", "14", None),
+            ],
+            "Regressao linear": [
+                ("Periodo", "20", None),
+                ("Tipo de regressao", "Simples", sobre_ma_items),
+                ("Modo de fechamento", "Fechamento", sobre_price_items),
+            ],
+            "Desvio da media": [
+                ("Periodo", "20", None),
+                ("Tipo de desvio", "Simples", sobre_ma_items),
+                ("Modo de fechamento", "Fechamento", sobre_price_items),
+            ],
+            "MFI": [
+                ("Periodo", "14", None),
+                ("Volume", "Tick", sobre_volume_items),
+            ],
+            "Bears Power": [
+                ("Periodo", "14", None),
+            ],
+            "Bulls Power": [
+                ("Periodo", "14", None),
+            ],
+            "CCI": [
+                ("Periodo", "14", None),
+                ("Modo de preco", "Fechamento", sobre_price_items),
+            ],
+            "Ichimoku Tenkan-sen": [
+                ("Tenkan-sen", "9", None),
+                ("Kijun-sen", "26", None),
+                ("Senkou Span B", "52", None),
+            ],
+            "Ichimoku Kijun-sen": [
+                ("Tenkan-sen", "9", None),
+                ("Kijun-sen", "26", None),
+                ("Senkou Span B", "52", None),
+            ],
+            "Ichimoku Senkou Span A": [
+                ("Tenkan-sen", "9", None),
+                ("Kijun-sen", "26", None),
+                ("Senkou Span B", "52", None),
+            ],
+            "Ichimoku Senkou Span B": [
+                ("Tenkan-sen", "9", None),
+                ("Kijun-sen", "26", None),
+                ("Senkou Span B", "52", None),
+            ],
+            "Ichimoku Chinkou Spa": [
+                ("Tenkan-sen", "9", None),
+                ("Kijun-sen", "26", None),
+                ("Senkou Span B", "52", None),
+            ],
+        }
+        self._build_sobre_param_forms()
+
+        self._sobre_indicator_combo.configure(command=self._on_sobre_indicator_change)
+        self._set_sobre_tab("Indicador")
+        self._show_sobre_param_group(self._sobre_indicator_combo.get())
+        self._sync_sobre_controls()
+
     def _create_panel(self, title: str, description: str) -> ctk.CTkFrame:
         panel = ctk.CTkFrame(
             self._body,
@@ -646,6 +840,47 @@ class SinaisView(ctk.CTkFrame):
             font=self._theme.font("label"),
         ).grid(row=row, column=0, columnspan=2, sticky="ew", padx=padx, pady=pady)
 
+    def _build_sobre_param_forms(self) -> None:
+        for indicator_name, fields in self._sobre_param_fields.items():
+            widgets: list[ctk.CTkBaseClass] = []
+            row = 1
+            title = ctk.CTkLabel(
+                self._sobre_params_panel,
+                text=indicator_name,
+                text_color=self._theme.colors.text,
+                font=self._theme.font("body", weight="bold"),
+                anchor="w",
+            )
+            title.grid(row=row, column=0, sticky="ew", padx=12, pady=(0, 10))
+            widgets.append(title)
+            row += 1
+
+            for label_text, default_value, combo_values in fields:
+                label = ctk.CTkLabel(
+                    self._sobre_params_panel,
+                    text=label_text,
+                    anchor="w",
+                    text_color=self._theme.colors.text_muted,
+                    font=self._theme.font("label"),
+                )
+                label.grid(row=row, column=0, sticky="ew", padx=12, pady=(0, 4))
+                widgets.append(label)
+                row += 1
+
+                if combo_values is None:
+                    control = self._create_entry(self._sobre_params_panel, default_value)
+                else:
+                    control = self._create_combo(
+                        self._sobre_params_panel,
+                        combo_values,
+                        ctk.StringVar(value=default_value),
+                    )
+                control.grid(row=row, column=0, sticky="ew", padx=12, pady=(0, 10))
+                widgets.append(control)
+                row += 1
+
+            self._sobre_param_groups[indicator_name] = widgets
+
     def _on_tab_change(self, selected: str) -> None:
         self._set_tab(selected)
 
@@ -654,6 +889,13 @@ class SinaisView(ctk.CTkFrame):
 
     def _on_cruz_tab_change(self, selected: str) -> None:
         self._set_cruz_tab(selected)
+
+    def _on_sobre_tab_change(self, selected: str) -> None:
+        self._set_sobre_tab(selected)
+
+    def _on_sobre_indicator_change(self, selected: str) -> None:
+        self._show_sobre_param_group(selected)
+        self._sync_sobre_controls()
 
     def _set_tab(self, name: str) -> None:
         self._tab_var.set(name)
@@ -724,6 +966,18 @@ class SinaisView(ctk.CTkFrame):
 
         self._sync_cruz_controls()
 
+    def _set_sobre_tab(self, tab_name: str) -> None:
+        self._sobre_tab_var.set(tab_name)
+        self._sobre_indicator_panel.grid_forget()
+        self._sobre_params_panel.grid_forget()
+
+        if tab_name == "Indicador":
+            self._sobre_indicator_panel.grid(row=0, column=0, sticky="nsew")
+        else:
+            self._sobre_params_panel.grid(row=0, column=0, sticky="nsew")
+
+        self._sync_sobre_controls()
+
     def _sync_cruz_controls(self) -> None:
         enabled = self._cruz_mode.get() == "Sim"
         active_tab = self._cruz_tab_var.get()
@@ -745,6 +999,39 @@ class SinaisView(ctk.CTkFrame):
         self._cruz_slow_shift.configure(state="normal" if slow_enabled else "disabled")
         self._cruz_slow_ma_type.configure(state="readonly" if slow_enabled else "disabled")
         self._cruz_slow_price.configure(state="readonly" if slow_enabled else "disabled")
+
+    def _toggle_sobre(self) -> None:
+        self._sync_sobre_controls()
+
+    def _show_sobre_param_group(self, indicator_name: str) -> None:
+        for widgets in self._sobre_param_groups.values():
+            for widget in widgets:
+                widget.grid_remove()
+
+        widgets = self._sobre_param_groups.get(indicator_name, [])
+        for widget in widgets:
+            widget.grid()
+
+    def _sync_sobre_controls(self) -> None:
+        enabled = self._sobre_enabled.get() == 1
+        indicador_tab = self._sobre_tab_var.get() == "Indicador"
+        parametros_tab = self._sobre_tab_var.get() == "Parametros"
+
+        self._sobre_tabs.configure(state="normal" if enabled else "disabled")
+        self._sobre_indicator_combo.configure(state="readonly" if enabled and indicador_tab else "disabled")
+        self._sobre_entry_combo.configure(state="readonly" if enabled and indicador_tab else "disabled")
+        self._sobre_overbought.configure(state="normal" if enabled and indicador_tab else "disabled")
+        self._sobre_oversold.configure(state="normal" if enabled and indicador_tab else "disabled")
+        self._sobre_direction_combo.configure(state="readonly" if enabled and indicador_tab else "disabled")
+
+        current_indicator = self._sobre_indicator_combo.get()
+        for indicator_name, widgets in self._sobre_param_groups.items():
+            group_enabled = enabled and parametros_tab and indicator_name == current_indicator
+            for widget in widgets:
+                if isinstance(widget, ctk.CTkEntry):
+                    widget.configure(state="normal" if group_enabled else "disabled")
+                elif isinstance(widget, ctk.CTkComboBox):
+                    widget.configure(state="readonly" if group_enabled else "disabled")
 
     def _sync_ordem_controls(self) -> None:
         tabs_enabled = self._ordem_mode.get() == "Limite"
