@@ -82,6 +82,7 @@ class SinaisView(ctk.CTkFrame):
 
         self._build_tipo_ordens_card(panel)
         self._build_filtro_card(panel)
+        self._build_canais_card(panel)
 
         return panel
 
@@ -265,6 +266,87 @@ class SinaisView(ctk.CTkFrame):
             self._filtro_entries.append(entry)
             row += 2
 
+    def _build_canais_card(self, panel: ctk.CTkFrame) -> None:
+        card = ctk.CTkFrame(
+            panel,
+            fg_color=self._theme.colors.card,
+            corner_radius=0,
+            border_width=1,
+            border_color=self._theme.colors.border,
+        )
+        card.grid(row=2, column=2, sticky="nsew", padx=6, pady=(0, 18))
+        card.grid_columnconfigure(0, weight=1)
+        card.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            card,
+            text="Canais de bandas",
+            text_color=self._theme.colors.text,
+            font=self._theme.font("subtitle"),
+            anchor="w",
+        ).grid(row=0, column=0, columnspan=2, sticky="ew", padx=16, pady=(16, 16))
+
+        self._add_label(card, 1, "Usar canais de bandas?", pady=(0, 6))
+        self._canais_mode = ctk.StringVar(value="Nao")
+        self._canais_yes = self._create_checkbox(
+            card,
+            "Sim",
+            lambda: self._set_canais_mode("Sim"),
+        )
+        self._canais_yes.grid(row=2, column=0, sticky="w", padx=16, pady=(0, 12))
+
+        self._canais_no = self._create_checkbox(
+            card,
+            "Nao",
+            lambda: self._set_canais_mode("Nao"),
+        )
+        self._canais_no.grid(row=2, column=1, sticky="w", padx=(0, 16), pady=(0, 12))
+
+        self._add_label(card, 3, "Indicador")
+        self._canais_indicador = self._create_combo(
+            card,
+            ["Bandas de Bollinger", "Envelope", "Keltner", "Donchian", "Canal ATR"],
+            ctk.StringVar(value="Bandas de Bollinger"),
+        )
+        self._canais_indicador.grid(row=4, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+
+        self._add_label(card, 5, "Sinais")
+        self._canais_sinal = self._create_combo(
+            card,
+            [
+                "Fechou fora",
+                "Fechou dentro e saiu",
+                "Fechou dentro e fechou fora",
+                "Fechou fora e voltou",
+                "Fechou fora e fechou dentro",
+                "Estando fora",
+            ],
+            ctk.StringVar(value="Fechou fora"),
+        )
+        self._canais_sinal.grid(row=6, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+
+        self._add_label(card, 7, "Periodo")
+        self._canais_periodo = self._create_entry(card, "20")
+        self._canais_periodo.grid(row=8, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+
+        self._add_label(card, 9, "Desvio")
+        self._canais_desvio = self._create_entry(card, "2.0")
+        self._canais_desvio.grid(row=10, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+
+        self._add_label(card, 11, "Deslocamento")
+        self._canais_deslocamento = self._create_entry(card, "0")
+        self._canais_deslocamento.grid(row=12, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+
+        self._add_label(card, 13, "Modo de preco")
+        self._canais_preco = self._create_combo(
+            card,
+            ["Fechamento", "Abertura", "Maximo", "Minimo", "Mediano", "Tipico", "Medio"],
+            ctk.StringVar(value="Fechamento"),
+        )
+        self._canais_preco.grid(row=14, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 16))
+
+        self._set_canais_mode("Nao")
+
     def _create_panel(self, title: str, description: str) -> ctk.CTkFrame:
         panel = ctk.CTkFrame(
             self._body,
@@ -422,6 +504,19 @@ class SinaisView(ctk.CTkFrame):
         self._ord_ref_panel.grid_forget()
         self._ord_media_panel.grid(row=0, column=0, sticky="nsew")
         self._sync_ordem_controls()
+
+    def _set_canais_mode(self, mode: str) -> None:
+        self._canais_mode.set(mode)
+        enabled = mode == "Sim"
+        self._canais_yes.select() if enabled else self._canais_yes.deselect()
+        self._canais_no.select() if not enabled else self._canais_no.deselect()
+
+        self._canais_indicador.configure(state="readonly" if enabled else "disabled")
+        self._canais_sinal.configure(state="readonly" if enabled else "disabled")
+        self._canais_periodo.configure(state="normal" if enabled else "disabled")
+        self._canais_desvio.configure(state="normal" if enabled else "disabled")
+        self._canais_deslocamento.configure(state="normal" if enabled else "disabled")
+        self._canais_preco.configure(state="readonly" if enabled else "disabled")
 
     def _sync_ordem_controls(self) -> None:
         tabs_enabled = self._ordem_mode.get() == "Limite"
