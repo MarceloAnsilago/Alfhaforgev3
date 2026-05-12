@@ -12,8 +12,8 @@ class MontarSlotState:
     indicator_var: ctk.StringVar
     timeframe_var: ctk.StringVar
     source_var: ctk.StringVar
-    period_entry: ctk.CTkEntry
-    shift_entry: ctk.CTkEntry
+    params_frame: ctk.CTkFrame
+    param_widgets: list[ctk.CTkBaseClass]
     summary_label: ctk.CTkLabel
 
 
@@ -57,6 +57,7 @@ class SinaisView(ctk.CTkFrame):
         self._body.grid_rowconfigure(0, weight=1)
 
         self._montar_indicator_outputs = self._build_montar_indicator_outputs()
+        self._montar_indicator_fields = self._build_montar_indicator_fields()
         self._montar_slot_states: list[MontarSlotState] = []
         self._montar_logic_rows: list[dict[str, ctk.CTkComboBox]] = []
         self._montar_logic_static_values = [
@@ -886,6 +887,43 @@ class SinaisView(ctk.CTkFrame):
         self._refresh_montar_logic_values()
         return panel
 
+    def _build_montar_indicator_fields(self) -> dict[str, list[tuple[str, str, list[str] | None]]]:
+        price_items = ["Fechamento", "Abertura", "Maxima", "Minima", "Mediano", "Tipico", "Medio"]
+        ma_items = ["Simples", "Exponencial", "Suavizada", "Linear ponderada"]
+        stoch_type_items = ["Minimo/Maximo", "Fechamento/Fechamento"]
+        return {
+            "Nao usar": [],
+            "RSI": [
+                ("Periodo", "14", None),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Media movel": [
+                ("Periodo", "20", None),
+                ("Shift", "0", None),
+                ("Tipo de media", "Exponencial", ma_items),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Bandas de Bollinger": [
+                ("Periodo", "20", None),
+                ("Desvio", "2.0", None),
+                ("Shift", "0", None),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Estocastico": [
+                ("K", "5", None),
+                ("D", "3", None),
+                ("Slowing", "3", None),
+                ("Media", "Simples", ma_items),
+                ("Tipo", "Minimo/Maximo", stoch_type_items),
+            ],
+            "MACD": [
+                ("EMA rapida", "12", None),
+                ("EMA lenta", "26", None),
+                ("Sinal", "9", None),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+        }
+
     def _create_montar_slot_card(self, master, group_id: int) -> ctk.CTkFrame:
         card = ctk.CTkFrame(
             master,
@@ -943,27 +981,8 @@ class SinaisView(ctk.CTkFrame):
             border_color=self._theme.colors.border,
         )
         params_frame.grid(row=8, column=0, sticky="ew", padx=12, pady=(0, 10))
-        params_frame.grid_columnconfigure((0, 1), weight=1, uniform=f"slot-{group_id}-params")
-
-        ctk.CTkLabel(
-            params_frame,
-            text="Periodo",
-            anchor="w",
-            text_color=self._theme.colors.text_muted,
-            font=self._theme.font("label"),
-        ).grid(row=0, column=0, sticky="ew", padx=(10, 5), pady=(10, 4))
-        period_entry = self._create_entry(params_frame, "14")
-        period_entry.grid(row=1, column=0, sticky="ew", padx=(10, 5), pady=(0, 10))
-
-        ctk.CTkLabel(
-            params_frame,
-            text="Shift",
-            anchor="w",
-            text_color=self._theme.colors.text_muted,
-            font=self._theme.font("label"),
-        ).grid(row=0, column=1, sticky="ew", padx=(5, 10), pady=(10, 4))
-        shift_entry = self._create_entry(params_frame, "0")
-        shift_entry.grid(row=1, column=1, sticky="ew", padx=(5, 10), pady=(0, 10))
+        params_frame.grid_columnconfigure(0, weight=1)
+        params_frame.grid_columnconfigure(1, weight=1)
 
         summary_label = ctk.CTkLabel(
             card,
@@ -981,12 +1000,13 @@ class SinaisView(ctk.CTkFrame):
             indicator_var=indicator_var,
             timeframe_var=timeframe_var,
             source_var=source_var,
-            period_entry=period_entry,
-            shift_entry=shift_entry,
+            params_frame=params_frame,
+            param_widgets=[],
             summary_label=summary_label,
         )
         self._montar_slot_states.append(state)
         indicator_combo.configure(command=lambda _value, slot_state=state: self._on_montar_slot_change(slot_state))
+        self._render_montar_slot_fields(state)
         self._update_montar_slot_summary(state)
         return card
 
@@ -1088,8 +1108,68 @@ class SinaisView(ctk.CTkFrame):
             )
 
     def _on_montar_slot_change(self, state: MontarSlotState) -> None:
+        self._render_montar_slot_fields(state)
         self._update_montar_slot_summary(state)
         self._refresh_montar_logic_values()
+
+    def _render_montar_slot_fields(self, state: MontarSlotState) -> None:
+        for widget in state.param_widgets:
+            widget.destroy()
+        state.param_widgets.clear()
+
+        fields = self._montar_indicator_fields.get(state.indicator_var.get(), [])
+        if not fields:
+            label = ctk.CTkLabel(
+                state.params_frame,
+                text="Sem parametros para este grupo enquanto o indicador estiver em 'Nao usar'.",
+                anchor="w",
+                justify="left",
+                wraplength=220,
+                text_color=self._theme.colors.text_subtle,
+                font=self._theme.font("label"),
+            )
+            label.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+            state.param_widgets.append(label)
+            return
+
+        row = 0
+        for index, (label_text, default_value, combo_values) in enumerate(fields):
+            column = index % 2
+            if index > 0 and column == 0:
+                row += 2
+
+            label = ctk.CTkLabel(
+                state.params_frame,
+                text=label_text,
+                anchor="w",
+                text_color=self._theme.colors.text_muted,
+                font=self._theme.font("label"),
+            )
+            label.grid(
+                row=row,
+                column=column,
+                sticky="ew",
+                padx=(10, 5) if column == 0 else (5, 10),
+                pady=((10 if row == 0 else 0), 4),
+            )
+            state.param_widgets.append(label)
+
+            if combo_values is None:
+                control = self._create_entry(state.params_frame, default_value)
+                control_state = "normal"
+            else:
+                control = self._create_combo(state.params_frame, combo_values, ctk.StringVar(value=default_value))
+                control_state = "readonly"
+
+            control.grid(
+                row=row + 1,
+                column=column,
+                sticky="ew",
+                padx=(10, 5) if column == 0 else (5, 10),
+                pady=(0, 10),
+            )
+            control.configure(state=control_state)
+            state.param_widgets.append(control)
 
     def _update_montar_slot_summary(self, state: MontarSlotState) -> None:
         indicator_name = state.indicator_var.get()
