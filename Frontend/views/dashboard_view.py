@@ -2,6 +2,7 @@ import customtkinter as ctk
 
 from models.navigation import NavigationItem
 from themes.theme import UITheme
+from views.break_even_view import BreakEvenView
 from views.initial_settings_view import InitialSettingsView
 from views.take_profit_view import TakeProfitView
 from views.stop_movel_view import StopMovelView
@@ -83,6 +84,11 @@ class DashboardView(ctk.CTkFrame):
 
         if item.item_id == "take_profit":
             self._current_body = TakeProfitView(self._placeholder, self._theme)
+            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
+            return
+
+        if item.item_id == "break_even":
+            self._current_body = BreakEvenView(self._placeholder, self._theme)
             self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
             return
 
