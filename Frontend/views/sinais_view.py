@@ -895,6 +895,7 @@ class SinaisView(ctk.CTkFrame):
         price_items = ["Fechamento", "Abertura", "Maxima", "Minima", "Mediano", "Tipico", "Medio"]
         ma_items = ["Simples", "Exponencial", "Suavizada", "Linear ponderada"]
         stoch_type_items = ["Minimo/Maximo", "Fechamento/Fechamento"]
+        volume_items = ["Tick", "Real"]
         return {
             "Nao usar": [],
             "Keltner": [
@@ -916,6 +917,12 @@ class SinaisView(ctk.CTkFrame):
                 ("Desvio", "0.2", None),
             ],
             "Fractal": [],
+            "Volume": [
+                ("Tipo de volume", "Tick", volume_items),
+            ],
+            "OBV": [
+                ("Volume", "Tick", volume_items),
+            ],
             "RSI": [
                 ("Periodo", "14", None),
                 ("Modo de preco", "Fechamento", price_items),
@@ -943,6 +950,41 @@ class SinaisView(ctk.CTkFrame):
                 ("EMA rapida", "12", None),
                 ("EMA lenta", "26", None),
                 ("Sinal", "9", None),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Alligator": [
+                ("Mandibula periodo", "13", None),
+                ("Mandibula shift", "8", None),
+                ("Dente periodo", "8", None),
+                ("Dente shift", "5", None),
+                ("Boca periodo", "5", None),
+                ("Boca shift", "3", None),
+                ("Tipo de media", "Suavizada", ma_items),
+                ("Modo de preco", "Mediano", price_items),
+            ],
+            "Nuvem de Ichimoku": [
+                ("Tenkan-sen", "9", None),
+                ("Kijun-sen", "26", None),
+                ("Senkou Span B", "52", None),
+            ],
+            "ADX (Average Direcional index)": [
+                ("Periodo", "14", None),
+            ],
+            "ADX Wilder": [
+                ("Periodo", "14", None),
+            ],
+            "Gator": [
+                ("Mandibula periodo", "13", None),
+                ("Mandibula shift", "8", None),
+                ("Dente periodo", "8", None),
+                ("Dente shift", "5", None),
+                ("Boca periodo", "5", None),
+                ("Boca shift", "3", None),
+                ("Tipo de media", "Suavizada", ma_items),
+                ("Modo de preco", "Mediano", price_items),
+            ],
+            "Momentum": [
+                ("Periodo", "14", None),
                 ("Modo de preco", "Fechamento", price_items),
             ],
         }
