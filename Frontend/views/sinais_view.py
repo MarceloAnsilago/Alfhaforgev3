@@ -12,6 +12,8 @@ class MontarSlotState:
     indicator_var: ctk.StringVar
     timeframe_var: ctk.StringVar
     source_var: ctk.StringVar
+    timeframe_combo: ctk.CTkComboBox
+    source_combo: ctk.CTkComboBox
     params_frame: ctk.CTkFrame
     param_widgets: list[ctk.CTkBaseClass]
     param_controls: dict[str, ctk.CTkEntry | ctk.CTkComboBox]
@@ -61,6 +63,7 @@ class SinaisView(ctk.CTkFrame):
 
         self._montar_indicator_outputs = self._build_montar_indicator_outputs()
         self._montar_indicator_fields = self._build_montar_indicator_fields()
+        self._montar_indicator_behavior = self._build_montar_indicator_behavior()
         self._montar_slot_states: list[MontarSlotState] = []
         self._montar_logic_rows: list[dict[str, ctk.CTkComboBox]] = []
         self._montar_logic_saved_values: list[dict[str, str]] = []
@@ -891,6 +894,40 @@ class SinaisView(ctk.CTkFrame):
         self._refresh_montar_logic_values()
         return panel
 
+    def _build_montar_indicator_behavior(self) -> dict[str, dict[str, str | bool]]:
+        default_behavior = {
+            "source_enabled": False,
+            "timeframe_enabled": True,
+            "note": "Grupo pronto para alimentar a composicao logica com as saidas do indicador.",
+        }
+        behavior = {name: dict(default_behavior) for name in self._montar_indicator_outputs}
+        behavior["Nao usar"] = {
+            "source_enabled": False,
+            "timeframe_enabled": False,
+            "note": "Grupo desligado. Nenhuma saida entra na composicao logica enquanto o indicador estiver em 'Nao usar'.",
+        }
+        behavior["Fractal"] = {
+            "source_enabled": False,
+            "timeframe_enabled": True,
+            "note": "Fractal expoe apenas os extremos superior e inferior no timeframe selecionado.",
+        }
+        behavior["Volume"] = {
+            "source_enabled": False,
+            "timeframe_enabled": True,
+            "note": "Volume gera uma saida unica e usa o tipo de volume como parametro principal.",
+        }
+        behavior["OBV"] = {
+            "source_enabled": False,
+            "timeframe_enabled": True,
+            "note": "OBV usa o volume do ativo e nao depende de origem de preco separada neste grupo.",
+        }
+        behavior["Nuvem de Ichimoku"] = {
+            "source_enabled": False,
+            "timeframe_enabled": True,
+            "note": "Ichimoku gera cinco linhas e trabalha com parametros proprios de Tenkan, Kijun e Senkou Span B.",
+        }
+        return behavior
+
     def _build_montar_indicator_fields(self) -> dict[str, list[tuple[str, str, list[str] | None]]]:
         price_items = ["Fechamento", "Abertura", "Maxima", "Minima", "Mediano", "Tipico", "Medio"]
         ma_items = ["Simples", "Exponencial", "Suavizada", "Linear ponderada"]
@@ -1065,6 +1102,8 @@ class SinaisView(ctk.CTkFrame):
             indicator_var=indicator_var,
             timeframe_var=timeframe_var,
             source_var=source_var,
+            timeframe_combo=timeframe_combo,
+            source_combo=source_combo,
             params_frame=params_frame,
             param_widgets=[],
             param_controls={},
@@ -1076,6 +1115,7 @@ class SinaisView(ctk.CTkFrame):
         indicator_combo.configure(command=lambda _value, slot_state=state: self._on_montar_slot_change(slot_state))
         self._render_montar_slot_fields(state)
         self._update_montar_slot_summary(state)
+        self._sync_montar_slot_controls(state)
         return card
 
     def _build_montar_logic_card(self, logic_frame: ctk.CTkFrame) -> None:
@@ -1193,7 +1233,19 @@ class SinaisView(ctk.CTkFrame):
         self._save_montar_slot_values(state)
         self._render_montar_slot_fields(state)
         self._update_montar_slot_summary(state)
+        self._sync_montar_slot_controls(state)
         self._refresh_montar_logic_values()
+
+    def _sync_montar_slot_controls(self, state: MontarSlotState) -> None:
+        behavior = self._montar_indicator_behavior.get(
+            state.indicator_var.get(),
+            self._montar_indicator_behavior["Keltner"],
+        )
+        timeframe_state = "readonly" if behavior["timeframe_enabled"] else "disabled"
+        source_state = "readonly" if behavior["source_enabled"] else "disabled"
+
+        state.timeframe_combo.configure(state=timeframe_state)
+        state.source_combo.configure(state=source_state)
 
     def _render_montar_slot_fields(self, state: MontarSlotState) -> None:
         for widget in state.param_widgets:
@@ -1274,15 +1326,17 @@ class SinaisView(ctk.CTkFrame):
     def _update_montar_slot_summary(self, state: MontarSlotState) -> None:
         indicator_name = state.indicator_var.get()
         outputs = self._montar_indicator_outputs.get(indicator_name, [])
+        behavior = self._montar_indicator_behavior.get(indicator_name, {})
+        note = behavior.get("note", "")
         if not outputs:
             state.summary_label.configure(
-                text=f"Grupo {state.group_id}: sem saidas para a composicao logica enquanto o indicador estiver em 'Nao usar'."
+                text=f"Grupo {state.group_id}: {note}"
             )
             return
 
         output_text = ", ".join(f"{state.group_id} {name}" for name in outputs)
         state.summary_label.configure(
-            text=f"Grupo {state.group_id}: {len(outputs)} saida(s) exposta(s) -> {output_text}."
+            text=f"Grupo {state.group_id}: {len(outputs)} saida(s) exposta(s) -> {output_text}. {note}"
         )
 
     def _build_montar_logic_dynamic_values(self) -> list[str]:
