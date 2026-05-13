@@ -943,6 +943,22 @@ class SinaisView(ctk.CTkFrame):
             "Donchian": [
                 ("Periodo", "20", None),
             ],
+            "Regressao": [
+                ("Periodo", "20", None),
+                ("Tipo de regressao", "Simples", ma_items),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Afastamento da media": [
+                ("Periodo", "20", None),
+                ("Shift", "0", None),
+                ("Tipo de media", "Exponencial", ma_items),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Desvio medio": [
+                ("Periodo", "20", None),
+                ("Tipo de media", "Simples", ma_items),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
             "ATR com desvio": [
                 ("Periodo", "14", None),
                 ("Desvio", "1.5", None),
@@ -957,7 +973,21 @@ class SinaisView(ctk.CTkFrame):
             "Volume": [
                 ("Tipo de volume", "Tick", volume_items),
             ],
+            "ATR": [
+                ("Periodo", "14", None),
+            ],
+            "Parabolic SAR": [
+                ("Step", "0.02", None),
+                ("Maximo", "0.2", None),
+            ],
             "OBV": [
+                ("Volume", "Tick", volume_items),
+            ],
+            "Acumulacao/Distribuicao (A/D)": [
+                ("Volume", "Tick", volume_items),
+            ],
+            "MFI (Money Flow Index)": [
+                ("Periodo", "14", None),
                 ("Volume", "Tick", volume_items),
             ],
             "RSI": [
@@ -988,6 +1018,52 @@ class SinaisView(ctk.CTkFrame):
                 ("EMA lenta", "26", None),
                 ("Sinal", "9", None),
                 ("Modo de preco", "Fechamento", price_items),
+            ],
+            "StdDev": [
+                ("Periodo", "20", None),
+                ("Tipo de media", "Simples", ma_items),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Vidya": [
+                ("CMO periodo", "9", None),
+                ("EMA periodo", "12", None),
+                ("Shift", "0", None),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Tema": [
+                ("Periodo", "14", None),
+                ("Shift", "0", None),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "FRAMA": [
+                ("Periodo", "14", None),
+                ("Shift", "0", None),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Trix": [
+                ("Periodo", "14", None),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Bears Power": [
+                ("Periodo", "14", None),
+            ],
+            "Bulls Power": [
+                ("Periodo", "14", None),
+            ],
+            "Chaikin Oscilador": [
+                ("EMA rapida", "3", None),
+                ("EMA lenta", "10", None),
+                ("Tipo de media", "Exponencial", ma_items),
+                ("Volume", "Tick", volume_items),
+            ],
+            "Accelerator Oscillator": [],
+            "Awesome Oscillator": [],
+            "CCI (Commodity Channel Index)": [
+                ("Periodo", "14", None),
+                ("Modo de preco", "Fechamento", price_items),
+            ],
+            "DeMarker": [
+                ("Periodo", "14", None),
             ],
             "Alligator": [
                 ("Mandibula periodo", "13", None),
@@ -1023,6 +1099,15 @@ class SinaisView(ctk.CTkFrame):
             "Momentum": [
                 ("Periodo", "14", None),
                 ("Modo de preco", "Fechamento", price_items),
+            ],
+            "Williams Percentual Range": [
+                ("Periodo", "14", None),
+            ],
+            "Market Facilitation Index": [
+                ("Volume", "Tick", volume_items),
+            ],
+            "Relative Vigor Index": [
+                ("Periodo", "10", None),
             ],
         }
 
