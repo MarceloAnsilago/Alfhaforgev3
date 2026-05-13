@@ -2,6 +2,7 @@ import customtkinter as ctk
 
 from models.navigation import NavigationItem
 from themes.theme import UITheme
+from views.ajustes_finais_view import AjustesFinaisView
 from views.break_even_view import BreakEvenView
 from views.initial_settings_view import InitialSettingsView
 from views.saidas_parciais_view import SaidasParciaisView
@@ -107,6 +108,11 @@ class DashboardView(ctk.CTkFrame):
 
         if item.item_id == "sinais":
             self._current_body = SinaisView(self._placeholder, self._theme)
+            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
+            return
+
+        if item.item_id == "ajustes_finais":
+            self._current_body = AjustesFinaisView(self._placeholder, self._theme)
             self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
             return
 
