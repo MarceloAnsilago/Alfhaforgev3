@@ -19,7 +19,7 @@ string BUTTON_OPTIMIZE_NAME = "AlphaForgeV3.BtnOptimize";
 string BUTTON_OPERATE_NAME  = "AlphaForgeV3.BtnOperate";
 string PANEL_NAME           = "AlphaForgeV3.Panel";
 string LOG_PANEL_NAME       = "AlphaForgeV3.LogPanel";
-string LOG_LABEL_NAME       = "AlphaForgeV3.LogLabel";
+string LOG_LABEL_PREFIX     = "AlphaForgeV3.LogLabel.";
 string BRIDGE_FILE_NAME     = "AlphaForgeV3_bridge_state.txt";
 int TIMER_INTERVAL_MS       = 100;
 
@@ -105,8 +105,8 @@ bool CreateLogOverlay()
    ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_CORNER,CORNER_LEFT_UPPER);
    ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_XDISTANCE,18);
    ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_YDISTANCE,86);
-   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_XSIZE,300);
-   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_YSIZE,92);
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_XSIZE,360);
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_YSIZE,108);
    ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_BGCOLOR,C'18,27,42');
    ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_BORDER_COLOR,C'50,70,100');
    ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_COLOR,C'50,70,100');
@@ -114,33 +114,42 @@ bool CreateLogOverlay()
    ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_SELECTABLE,false);
    ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_HIDDEN,true);
 
-   if(ObjectFind(0,LOG_LABEL_NAME)<0)
+   string names[4]=
      {
-      if(!ObjectCreate(0,LOG_LABEL_NAME,OBJ_LABEL,0,0,0))
-         return(false);
-     }
+      LOG_LABEL_PREFIX+"0",
+      LOG_LABEL_PREFIX+"1",
+      LOG_LABEL_PREFIX+"2",
+      LOG_LABEL_PREFIX+"3"
+     };
+   int y_positions[4]={96,114,132,150};
 
-   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_CORNER,CORNER_LEFT_UPPER);
-   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_XDISTANCE,28);
-   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_YDISTANCE,96);
-   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_FONTSIZE,9);
-   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_COLOR,C'210,220,235');
-   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_SELECTABLE,false);
-   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_HIDDEN,true);
-   ObjectSetString(0,LOG_LABEL_NAME,OBJPROP_FONT,"Consolas");
+   for(int i=0;i<4;i++)
+     {
+      if(ObjectFind(0,names[i])<0)
+        {
+         if(!ObjectCreate(0,names[i],OBJ_LABEL,0,0,0))
+            return(false);
+        }
+
+      ObjectSetInteger(0,names[i],OBJPROP_CORNER,CORNER_LEFT_UPPER);
+      ObjectSetInteger(0,names[i],OBJPROP_XDISTANCE,28);
+      ObjectSetInteger(0,names[i],OBJPROP_YDISTANCE,y_positions[i]);
+      ObjectSetInteger(0,names[i],OBJPROP_FONTSIZE,9);
+      ObjectSetInteger(0,names[i],OBJPROP_COLOR,C'210,220,235');
+      ObjectSetInteger(0,names[i],OBJPROP_SELECTABLE,false);
+      ObjectSetInteger(0,names[i],OBJPROP_HIDDEN,true);
+      ObjectSetString(0,names[i],OBJPROP_FONT,"Consolas");
+     }
    return(true);
   }
 
 void RefreshBridgeOverlay()
   {
    CreateLogOverlay();
-   string text=
-      "AlphaForge V3"+
-      "\nBridge: "+g_bridge_status+
-      "\nStrategy: "+g_bridge_strategy_name+
-      "\nMagic: "+g_bridge_magic_number+
-      "\nUpdated: "+g_bridge_updated_at;
-   ObjectSetString(0,LOG_LABEL_NAME,OBJPROP_TEXT,text);
+   ObjectSetString(0,LOG_LABEL_PREFIX+"0",OBJPROP_TEXT,"AlphaForge V3");
+   ObjectSetString(0,LOG_LABEL_PREFIX+"1",OBJPROP_TEXT,"Bridge: "+g_bridge_status);
+   ObjectSetString(0,LOG_LABEL_PREFIX+"2",OBJPROP_TEXT,"Strategy: "+g_bridge_strategy_name);
+   ObjectSetString(0,LOG_LABEL_PREFIX+"3",OBJPROP_TEXT,"Magic: "+g_bridge_magic_number);
    ChartRedraw();
   }
 
@@ -245,8 +254,11 @@ void DestroyControlPanel()
    ObjectDelete(0,BUTTON_OPTIMIZE_NAME);
    ObjectDelete(0,BUTTON_OPERATE_NAME);
    ObjectDelete(0,PANEL_NAME);
-   ObjectDelete(0,LOG_LABEL_NAME);
    ObjectDelete(0,LOG_PANEL_NAME);
+   ObjectDelete(0,LOG_LABEL_PREFIX+"0");
+   ObjectDelete(0,LOG_LABEL_PREFIX+"1");
+   ObjectDelete(0,LOG_LABEL_PREFIX+"2");
+   ObjectDelete(0,LOG_LABEL_PREFIX+"3");
   }
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
