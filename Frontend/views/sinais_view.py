@@ -22,6 +22,58 @@ class MontarSlotState:
     summary_label: ctk.CTkLabel
 
 
+@dataclass(frozen=True)
+class MontarGroupConfig:
+    group_id: int
+    indicator: str
+    timeframe: str
+    source_price: str
+    outputs: list[str]
+    params: dict[str, str]
+
+
+@dataclass(frozen=True)
+class MontarLogicRowConfig:
+    operator: str
+    reference_value: str
+    reference_candle: str
+    comparison: str
+    comparison_value: str
+    comparison_candle: str
+
+
+@dataclass(frozen=True)
+class MontarSignalsConfig:
+    groups: list[MontarGroupConfig]
+    logic_rows: list[MontarLogicRowConfig]
+
+    def to_dict(self) -> dict[str, list[dict[str, object]]]:
+        return {
+            "groups": [
+                {
+                    "group_id": group.group_id,
+                    "indicator": group.indicator,
+                    "timeframe": group.timeframe,
+                    "source_price": group.source_price,
+                    "outputs": list(group.outputs),
+                    "params": dict(group.params),
+                }
+                for group in self.groups
+            ],
+            "logic_rows": [
+                {
+                    "operator": row.operator,
+                    "reference_value": row.reference_value,
+                    "reference_candle": row.reference_candle,
+                    "comparison": row.comparison,
+                    "comparison_value": row.comparison_value,
+                    "comparison_candle": row.comparison_candle,
+                }
+                for row in self.logic_rows
+            ],
+        }
+
+
 class SinaisView(ctk.CTkFrame):
     def __init__(self, master, theme: UITheme) -> None:
         super().__init__(master, fg_color="transparent")
@@ -1445,6 +1497,41 @@ class SinaisView(ctk.CTkFrame):
                 combo.configure(values=values)
                 desired_value = saved_row.get(combo_name, values[0])
                 combo.set(desired_value if desired_value in values else values[0])
+
+    def _build_montar_group_config(self, state: MontarSlotState) -> MontarGroupConfig:
+        self._save_montar_slot_values(state)
+        indicator_name = state.indicator_var.get()
+        return MontarGroupConfig(
+            group_id=state.group_id,
+            indicator=indicator_name,
+            timeframe=state.timeframe_var.get(),
+            source_price=state.source_var.get(),
+            outputs=[f"{state.group_id} {name}" for name in self._montar_indicator_outputs.get(indicator_name, [])],
+            params=dict(state.saved_param_values.get(indicator_name, {})),
+        )
+
+    def _build_montar_logic_row_config(self, row_index: int) -> MontarLogicRowConfig:
+        row = self._montar_logic_rows[row_index]
+        saved_row = self._montar_logic_saved_values[row_index]
+        for combo_name, combo in row.items():
+            saved_row[combo_name] = combo.get()
+
+        return MontarLogicRowConfig(
+            operator=saved_row["operator"],
+            reference_value=saved_row["value"],
+            reference_candle=saved_row["candle"],
+            comparison=saved_row["compare"],
+            comparison_value=saved_row["compare_value"],
+            comparison_candle=saved_row["compare_candle"],
+        )
+
+    def export_montar_signals_config(self) -> MontarSignalsConfig:
+        groups = [self._build_montar_group_config(state) for state in self._montar_slot_states]
+        logic_rows = [self._build_montar_logic_row_config(index) for index in range(len(self._montar_logic_rows))]
+        return MontarSignalsConfig(groups=groups, logic_rows=logic_rows)
+
+    def export_montar_signals_dict(self) -> dict[str, list[dict[str, object]]]:
+        return self.export_montar_signals_config().to_dict()
 
     def _create_panel(self, title: str, description: str) -> ctk.CTkFrame:
         panel = ctk.CTkFrame(
