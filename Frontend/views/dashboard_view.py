@@ -17,6 +17,7 @@ class DashboardView(ctk.CTkFrame):
     def __init__(self, master, theme: UITheme) -> None:
         super().__init__(master, fg_color="transparent")
         self._theme = theme
+        self._view_cache: dict[str, ctk.CTkBaseClass] = {}
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -67,54 +68,69 @@ class DashboardView(ctk.CTkFrame):
         self._description.configure(text=item.description)
         self._render_body(item)
 
+    def export_bridge_payload(self) -> dict[str, str]:
+        payload = {
+            "active_section": self._active_section_id(),
+        }
+
+        initial_view = self._view_cache.get("inf_iniciais")
+        if initial_view is not None and hasattr(initial_view, "export_config"):
+            config = initial_view.export_config()
+            for key, value in config.items():
+                payload[key] = str(value)
+
+        ajustes_view = self._view_cache.get("ajustes_finais")
+        if ajustes_view is not None and hasattr(ajustes_view, "export_config"):
+            ajustes = ajustes_view.export_config()
+            payload["final_adjustments_count"] = str(len(ajustes))
+
+        sinais_view = self._view_cache.get("sinais")
+        if sinais_view is not None and hasattr(sinais_view, "export_montar_signals_dict"):
+            montar = sinais_view.export_montar_signals_dict()
+            payload["signal_groups_count"] = str(len(montar.get("groups", [])))
+            payload["signal_logic_rows_count"] = str(len(montar.get("logic_rows", [])))
+
+        return payload
+
     def _render_body(self, item: NavigationItem) -> None:
         if self._current_body is not None:
-            self._current_body.destroy()
+            self._current_body.grid_remove()
 
+        body = self._view_cache.get(item.item_id)
+        if body is None:
+            body = self._build_view(item)
+            self._view_cache[item.item_id] = body
+
+        body.grid()
+        self._current_body = body
+
+    def _build_view(self, item: NavigationItem) -> ctk.CTkBaseClass:
         if item.item_id == "inf_iniciais":
-            self._current_body = InitialSettingsView(self._placeholder, self._theme)
-            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
-            return
+            return self._create_view(InitialSettingsView)
 
         if item.item_id == "stop_loss":
-            self._current_body = StopLossView(self._placeholder, self._theme)
-            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
-            return
+            return self._create_view(StopLossView)
 
         if item.item_id == "stop_movel":
-            self._current_body = StopMovelView(self._placeholder, self._theme)
-            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
-            return
+            return self._create_view(StopMovelView)
 
         if item.item_id == "take_profit":
-            self._current_body = TakeProfitView(self._placeholder, self._theme)
-            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
-            return
+            return self._create_view(TakeProfitView)
 
         if item.item_id == "break_even":
-            self._current_body = BreakEvenView(self._placeholder, self._theme)
-            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
-            return
+            return self._create_view(BreakEvenView)
 
         if item.item_id == "trailing_stop":
-            self._current_body = TrailingStopView(self._placeholder, self._theme)
-            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
-            return
+            return self._create_view(TrailingStopView)
 
         if item.item_id == "saidas_parciais":
-            self._current_body = SaidasParciaisView(self._placeholder, self._theme)
-            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
-            return
+            return self._create_view(SaidasParciaisView)
 
         if item.item_id == "sinais":
-            self._current_body = SinaisView(self._placeholder, self._theme)
-            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
-            return
+            return self._create_view(SinaisView)
 
         if item.item_id == "ajustes_finais":
-            self._current_body = AjustesFinaisView(self._placeholder, self._theme)
-            self._current_body.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
-            return
+            return self._create_view(AjustesFinaisView)
 
         content = ctk.CTkFrame(self._placeholder, fg_color="transparent")
         content.grid(row=0, column=0, sticky="")
@@ -134,4 +150,16 @@ class DashboardView(ctk.CTkFrame):
             justify="center",
             wraplength=520,
         ).pack(anchor="center", pady=(10, 0))
-        self._current_body = content
+        return content
+
+    def _create_view(self, view_class):
+        view = view_class(self._placeholder, self._theme)
+        view.grid(row=0, column=0, sticky="nsew", padx=14, pady=14)
+        view.grid_remove()
+        return view
+
+    def _active_section_id(self) -> str:
+        for item_id, body in self._view_cache.items():
+            if body == self._current_body:
+                return item_id
+        return ""

@@ -18,9 +18,17 @@ string BUTTON_CREATE_NAME   = "AlphaForgeV3.BtnCreateStrategy";
 string BUTTON_OPTIMIZE_NAME = "AlphaForgeV3.BtnOptimize";
 string BUTTON_OPERATE_NAME  = "AlphaForgeV3.BtnOperate";
 string PANEL_NAME           = "AlphaForgeV3.Panel";
+string LOG_PANEL_NAME       = "AlphaForgeV3.LogPanel";
+string LOG_LABEL_NAME       = "AlphaForgeV3.LogLabel";
+string BRIDGE_FILE_NAME     = "AlphaForgeV3_bridge_state.txt";
 int TIMER_INTERVAL_MS       = 100;
 
 bool g_operation_enabled = false;
+string g_bridge_status = "Aguardando payload do frontend";
+string g_bridge_strategy_name = "-";
+string g_bridge_magic_number = "-";
+string g_bridge_updated_at = "-";
+ulong g_last_bridge_poll_ms = 0;
 CAlphaForgeOptimizeModal g_optimize_modal;
 CAlphaForgeChartTheme g_chart_theme;
 
@@ -49,32 +57,126 @@ void NotifyFrontendPending()
       return;
      }
 
-   if(!FileIsExist(app_path))
-     {
-      Print("AlphaForge V3: frontend nao encontrado em ",app_path);
-      return;
-     }
-
    string app_argument="\""+app_path+"\"";
    if(LaunchFrontendWith("pythonw.exe",app_argument,frontend_dir))
      {
-      Print("AlphaForge V3: frontend iniciado com pythonw.exe");
+      Print("AlphaForge V3: frontend iniciado com pythonw.exe -> ",app_path);
       return;
      }
 
    if(LaunchFrontendWith("python.exe",app_argument,frontend_dir))
      {
-      Print("AlphaForge V3: frontend iniciado com python.exe");
+      Print("AlphaForge V3: frontend iniciado com python.exe -> ",app_path);
       return;
      }
 
    if(LaunchFrontendWith("py.exe","-3 "+app_argument,frontend_dir))
      {
-      Print("AlphaForge V3: frontend iniciado com py.exe");
+      Print("AlphaForge V3: frontend iniciado com py.exe -> ",app_path);
       return;
      }
 
    Print("AlphaForge V3: falha ao iniciar o frontend. Verifique Python e customtkinter instalados.");
+  }
+
+void UpdateBridgeField(const string key,const string value)
+  {
+   if(key=="bridge_status")
+      g_bridge_status=value;
+   else
+      if(key=="strategy_name")
+         g_bridge_strategy_name=value;
+      else
+         if(key=="magic_number")
+            g_bridge_magic_number=value;
+         else
+            if(key=="updated_at")
+               g_bridge_updated_at=value;
+  }
+
+bool CreateLogOverlay()
+  {
+   if(ObjectFind(0,LOG_PANEL_NAME)<0)
+     {
+      if(!ObjectCreate(0,LOG_PANEL_NAME,OBJ_RECTANGLE_LABEL,0,0,0))
+         return(false);
+     }
+
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_CORNER,CORNER_LEFT_UPPER);
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_XDISTANCE,18);
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_YDISTANCE,86);
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_XSIZE,300);
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_YSIZE,92);
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_BGCOLOR,C'18,27,42');
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_BORDER_COLOR,C'50,70,100');
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_COLOR,C'50,70,100');
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_BACK,false);
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,LOG_PANEL_NAME,OBJPROP_HIDDEN,true);
+
+   if(ObjectFind(0,LOG_LABEL_NAME)<0)
+     {
+      if(!ObjectCreate(0,LOG_LABEL_NAME,OBJ_LABEL,0,0,0))
+         return(false);
+     }
+
+   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_CORNER,CORNER_LEFT_UPPER);
+   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_XDISTANCE,28);
+   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_YDISTANCE,96);
+   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_COLOR,C'210,220,235');
+   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,LOG_LABEL_NAME,OBJPROP_HIDDEN,true);
+   ObjectSetString(0,LOG_LABEL_NAME,OBJPROP_FONT,"Consolas");
+   return(true);
+  }
+
+void RefreshBridgeOverlay()
+  {
+   CreateLogOverlay();
+   string text=
+      "AlphaForge V3"+
+      "\nBridge: "+g_bridge_status+
+      "\nStrategy: "+g_bridge_strategy_name+
+      "\nMagic: "+g_bridge_magic_number+
+      "\nUpdated: "+g_bridge_updated_at;
+   ObjectSetString(0,LOG_LABEL_NAME,OBJPROP_TEXT,text);
+   ChartRedraw();
+  }
+
+void SyncFrontendBridge()
+  {
+   ulong now_ms=GetTickCount64();
+   if(now_ms-g_last_bridge_poll_ms<500)
+      return;
+
+   g_last_bridge_poll_ms=now_ms;
+   int handle=FileOpen(BRIDGE_FILE_NAME,FILE_READ|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+     {
+      g_bridge_status="Aguardando payload do frontend";
+      RefreshBridgeOverlay();
+      return;
+     }
+
+   while(!FileIsEnding(handle))
+     {
+      string line=FileReadString(handle);
+      int delimiter=StringFind(line,"=");
+      if(delimiter<=0)
+         continue;
+
+      string key=StringSubstr(line,0,delimiter);
+      string value=StringSubstr(line,delimiter+1);
+      StringTrimLeft(key);
+      StringTrimRight(key);
+      StringTrimLeft(value);
+      StringTrimRight(value);
+      UpdateBridgeField(key,value);
+     }
+
+   FileClose(handle);
+   RefreshBridgeOverlay();
   }
 
 bool CreateButtonObject(const string name,const string text,const int x,const int y,const int width,const color back_color)
@@ -143,6 +245,8 @@ void DestroyControlPanel()
    ObjectDelete(0,BUTTON_OPTIMIZE_NAME);
    ObjectDelete(0,BUTTON_OPERATE_NAME);
    ObjectDelete(0,PANEL_NAME);
+   ObjectDelete(0,LOG_LABEL_NAME);
+   ObjectDelete(0,LOG_PANEL_NAME);
   }
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -170,6 +274,16 @@ int OnInit()
       g_chart_theme.RestoreTheme();
       return(INIT_FAILED);
      }
+
+   if(!CreateLogOverlay())
+     {
+      Print("AlphaForge V3: falha ao criar painel de logs.");
+      DestroyControlPanel();
+      g_chart_theme.RestoreTheme();
+      return(INIT_FAILED);
+     }
+
+   RefreshBridgeOverlay();
 
    if(!EventSetMillisecondTimer(TIMER_INTERVAL_MS))
      {
@@ -202,6 +316,8 @@ void OnTick()
 //+------------------------------------------------------------------+
 void OnTimer()
   {
+   SyncFrontendBridge();
+
    if(g_optimize_modal.IsCreated())
       g_optimize_modal.OnTimerEvent();
   }
@@ -217,6 +333,8 @@ void OnChartEvent(const int id,const long &lparam,const double &dparam,const str
      {
       g_chart_theme.RefreshThemeDecorations();
       CreateControlPanel();
+      CreateLogOverlay();
+      RefreshBridgeOverlay();
       return;
      }
 

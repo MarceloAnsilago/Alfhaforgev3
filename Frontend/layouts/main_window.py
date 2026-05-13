@@ -3,6 +3,7 @@ import customtkinter as ctk
 from components.sidebar import Sidebar
 from components.top_header import TopHeader
 from models.navigation import NavigationItem, build_navigation_items
+from services.bridge import write_bridge_state
 from themes.theme import UITheme, configure_ctk
 from views.dashboard_view import DashboardView
 
@@ -48,8 +49,9 @@ class AlphaForgeApp(ctk.CTk):
         main_shell.grid_rowconfigure(1, weight=1)
         main_shell.grid_columnconfigure(0, weight=1)
 
-        header = TopHeader(main_shell, self._theme)
+        header = TopHeader(main_shell, self._theme, on_apply=self._apply_to_ea)
         header.grid(row=0, column=0, sticky="ew")
+        self._header = header
 
         self._content = DashboardView(main_shell, self._theme)
         self._content.grid(row=1, column=0, sticky="nsew", padx=20, pady=(10, 16))
@@ -58,3 +60,8 @@ class AlphaForgeApp(ctk.CTk):
         self._active_item = item
         self._sidebar.set_active(item.item_id)
         self._content.set_section(item)
+
+    def _apply_to_ea(self) -> None:
+        payload = self._content.export_bridge_payload()
+        bridge_path = write_bridge_state(payload)
+        self._header.set_status(f"Bridge OK: {bridge_path.name}")

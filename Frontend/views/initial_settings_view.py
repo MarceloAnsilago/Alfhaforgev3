@@ -9,6 +9,9 @@ class InitialSettingsView(ctk.CTkFrame):
         super().__init__(master, fg_color="transparent")
         self._theme = theme
         self._form_options = build_initial_settings_options()
+        self._combo_refs: dict[str, ctk.CTkComboBox] = {}
+        self._time_refs: dict[str, tuple[ctk.CTkComboBox, ctk.CTkComboBox]] = {}
+        self._entry_refs: dict[str, ctk.StringVar] = {}
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -109,6 +112,7 @@ class InitialSettingsView(ctk.CTkFrame):
         entry.grid(row=row + 1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
         if readonly:
             entry.configure(state="readonly")
+        self._entry_refs[label] = variable
 
     def _add_combo(
         self,
@@ -140,6 +144,7 @@ class InitialSettingsView(ctk.CTkFrame):
         )
         combo.set(default)
         combo.grid(row=row + 1, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 12))
+        self._combo_refs[label] = combo
 
     def _add_time_row(
         self,
@@ -208,6 +213,7 @@ class InitialSettingsView(ctk.CTkFrame):
         )
         minute_combo.set(minute_default)
         minute_combo.grid(row=0, column=1, sticky="ew")
+        self._time_refs[label] = (hour_combo, minute_combo)
 
     def _add_label(self, card: ctk.CTkFrame, row: int, text: str) -> None:
         ctk.CTkLabel(
@@ -227,3 +233,24 @@ class InitialSettingsView(ctk.CTkFrame):
 
     def _on_name_change(self, *_args) -> None:
         self._magic_var.set(self._build_magic_value(self._name_var.get()))
+
+    def export_config(self) -> dict[str, str]:
+        start_hour, start_minute = self._time_refs["Inicio das operacoes"]
+        end_hour, end_minute = self._time_refs["Fim das operacoes"]
+        reset_hour, reset_minute = self._time_refs["Horario de zeragem"]
+        return {
+            "strategy_name": self._name_var.get(),
+            "magic_number": self._magic_var.get(),
+            "market": self._combo_refs["Mercado desejado"].get(),
+            "operation_type": self._combo_refs["Tipo operacional"].get(),
+            "processing_mode": self._combo_refs["Modo de processamento"].get(),
+            "allow_buy": self._combo_refs["Operar na compra"].get(),
+            "allow_sell": self._combo_refs["Operar na venda"].get(),
+            "start_time": f"{start_hour.get()}:{start_minute.get()}",
+            "end_time": f"{end_hour.get()}:{end_minute.get()}",
+            "reset_positions": self._combo_refs["Zerar posicoes"].get(),
+            "reset_time": f"{reset_hour.get()}:{reset_minute.get()}",
+            "chart_timeframe": self._combo_refs["Tempo grafico"].get(),
+            "initial_volume": self._entry_refs["Volume inicial"].get(),
+            "max_spread": self._entry_refs["Spread maximo"].get(),
+        }
